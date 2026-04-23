@@ -99,6 +99,16 @@ import type { Theme } from '@/common/theme/types';
 import type { AttachFolderRequest, ProjectDetailDto, ProjectEntryDto } from '@/common/types/project';
 import type { ChatFileRef, ContentEncoding } from '@/common/types/chatFile';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
+import type {
+  BaitongAdapterAction,
+  BaitongAdapterActionResult,
+  BaitongConfigResult,
+  BaitongConfigUpdate,
+  BaitongLoginParams,
+  BaitongLogsResult,
+  BaitongRefreshResult,
+  BaitongStatus,
+} from '../types/baitong';
 import {
   buildCreateConversationBody,
   fromApiConversation,
@@ -1627,6 +1637,28 @@ export type GetConversationMessagesParams = {
   content_mode?: 'compact' | 'full';
 };
 
+export type ConversationCompactionAudit = {
+  kind: 'microcompact' | 'autocompact';
+  created_at: string;
+  tool_results: Array<{
+    tool_use_id: string;
+    tool_name: string;
+    input: unknown;
+    output: string;
+    is_error: boolean;
+    message_timestamp?: string;
+    turn_id?: string;
+  }>;
+  affected_tool_results: number;
+  estimated_tokens_freed?: number;
+  summarized_messages?: number;
+  pre_compact_tokens?: number;
+};
+
+export type ConversationCompactionAuditList = {
+  items: ConversationCompactionAudit[];
+};
+
 export const database = {
   getConversationMessages: httpGet<
     MessageCursorPage<import('@/common/chat/chatLib').TMessage>,
@@ -1654,6 +1686,9 @@ export const database = {
     import('@/common/chat/chatLib').TMessage | null,
     { conversation_id: string; type: string }
   >((p) => `/api/conversations/${p.conversation_id}/messages/latest?type=${encodeURIComponent(p.type)}`),
+  getConversationCompactionAudit: httpGet<ConversationCompactionAuditList, { conversation_id: string }>(
+    (p) => `/api/conversations/${encodeURIComponent(p.conversation_id)}/compaction-audit`
+  ),
   getUserConversations: withResponseMap(
     httpGet<PaginatedResult<import('@/common/config/storage').TChatConversation>, { cursor?: string; limit?: number }>(
       (p) => {
@@ -2687,6 +2722,25 @@ export const team = {
   childTurnCompleted: wsEmitter<ITeamChildTurnEvent>('team.childTurnCompleted'),
   childTurnCancelled: wsEmitter<ITeamChildTurnEvent>('team.childTurnCancelled'),
   slotWorkChanged: wsEmitter<ITeamSlotWorkChangedEvent>('team.slotWorkChanged'),
+};
+
+// ---------------------------------------------------------------------------
+// Baitong — the ONLY path to the local adapter. AionUi never calls the Python
+// control plane or the 8102 model service directly.
+// ---------------------------------------------------------------------------
+export const baitong = {
+  status: httpGet<BaitongStatus, void>('/api/baitong/status'),
+  login: httpPost<BaitongStatus, BaitongLoginParams>('/api/baitong/auth/login'),
+  refreshSession: httpPost<BaitongRefreshResult, void>('/api/baitong/session/refresh'),
+  logout: httpPost<BaitongStatus, void>('/api/baitong/session/logout'),
+  updateConfig: httpPut<BaitongConfigResult, BaitongConfigUpdate>('/api/baitong/config'),
+  adapterAction: httpPost<BaitongAdapterActionResult, { action: BaitongAdapterAction }>(
+    (p) => `/api/baitong/adapter/${p.action}`
+  ),
+  logs: httpGet<BaitongLogsResult, void>('/api/baitong/logs'),
+  mcpSnippet: httpGet<{ snippet: string }, void>('/api/baitong/mcp-snippet'),
+  writeOpencodeConfig: httpPost<{ snippet: string }, void>('/api/baitong/write-opencode-config'),
+  openOpencodeFolder: httpPost<{ snippet: string }, void>('/api/baitong/open-opencode-folder'),
 };
 
 export const sidebar = {

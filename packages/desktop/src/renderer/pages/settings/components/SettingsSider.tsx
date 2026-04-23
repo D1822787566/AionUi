@@ -28,6 +28,7 @@ import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 export const BUILTIN_TAB_IDS = [
   'agent',
   'model',
+  'baitong',
   'skills',
   'tools',
   'factory',
@@ -87,6 +88,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
       model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
+      baitong: {
+        id: 'baitong',
+        label: t('settings.baitong.navLabel'),
+        icon: <LinkCloud />,
+        path: 'baitong',
+      },
       agent: {
         id: 'agent',
         label: t('settings.agents', { defaultValue: 'Agents' }),

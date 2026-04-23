@@ -1,6 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { PREVIEW_SCOPE_KEY_PREFIX } from '@/renderer/pages/conversation/Preview/context/previewScope';
 import { refreshSession } from '@/common/adapter/sessionRefresh';
+import { baitong } from '@/common/adapter/ipcBridge';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
+import { BAITONG_ERROR_CODES } from '@/common/types/baitong';
 // M6: CSRF removed with legacy webserver — stub functions for compatibility, re-implement in M7
 const withCsrfToken = <T extends Record<string, unknown>>(data: T): T => data;
 const hasValidCsrfToken = (): boolean => true;
@@ -25,6 +28,8 @@ type LoginErrorCode =
   | 'tooManyAttempts'
   | 'serverError'
   | 'networkError'
+  | 'adapterUnavailable'
+  | 'credentialsRequired'
   | 'csrfError'
   | 'unknown';
 
@@ -128,6 +133,32 @@ async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> 
   return null;
 }
 
+/**
+ * Desktop login state comes from the local Baitong adapter, not from the WebUI
+ * cookie session. `credential_state === 'ready'` is the only condition that
+ * counts as signed in: a ready credential means the password is stored and
+ * decryptable, so a cookie refresh can always recover the session.
+ */
+async function fetchBaitongUser(signal?: AbortSignal): Promise<AuthUser | null> {
+  try {
+    const status = await baitong.status.invoke();
+    if (signal?.aborted) return null;
+    const session = status?.session;
+    if (session?.credential_state !== 'ready' || !session.account) {
+      return null;
+    }
+    return { id: session.account, username: session.account };
+  } catch (error) {
+    if ((error as Error)?.name === 'AbortError') {
+      return null;
+    }
+    // A backend that is still booting (or an adapter that cannot spawn) must
+    // land the user on the login page, not on a blank "checking" screen.
+    console.error('Failed to read Baitong status:', error);
+    return null;
+  }
+}
+
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>('checking');
@@ -136,8 +167,14 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const refresh = useCallback(async () => {
     if (isDesktopRuntime) {
-      setStatus('authenticated');
-      setUser(null);
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setStatus('checking');
+
+      const currentUser = await fetchBaitongUser(controller.signal);
+      setUser(currentUser);
+      setStatus(currentUser ? 'authenticated' : 'unauthenticated');
       setReady(true);
       return;
     }
@@ -168,6 +205,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
     try {
       if (isDesktopRuntime) {
+        const loginState = await baitong.login.invoke({ account: username, password, remember: remember ?? true });
+        const account = loginState?.session?.account ?? username;
+        setUser({ id: account, username: account });
+        setStatus('authenticated');
         setReady(true);
         return { success: true };
       }
@@ -247,6 +288,24 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     } catch (error) {
       console.error('Login request failed:', error);
 
+      if (isDesktopRuntime) {
+        const code = isBackendHttpError(error) ? error.code : '';
+        switch (code) {
+          case BAITONG_ERROR_CODES.invalidCredentials:
+            return { success: false, code: 'invalidCredentials' };
+          case BAITONG_ERROR_CODES.network:
+            return { success: false, code: 'networkError' };
+          case BAITONG_ERROR_CODES.adapter:
+            return { success: false, code: 'adapterUnavailable' };
+          case BAITONG_ERROR_CODES.credentialsRequired:
+            return { success: false, code: 'credentialsRequired' };
+          case BAITONG_ERROR_CODES.badRequest:
+            return { success: false, code: 'unknown' };
+          default:
+            return { success: false, code: 'unknown' };
+        }
+      }
+
       // Check if error is related to CSRF token parsing
       const errorMessage = (error as Error).message;
       if (errorMessage?.includes('parse') || errorMessage?.includes('csrf') || errorMessage?.includes('cookie')) {
@@ -270,9 +329,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
+      // The adapter clears the stored password and stops the model service. If
+      // that fails the credentials are still on disk, so reporting success here
+      // would show a signed-out UI that signs itself back in on the next start.
+      // Let the error propagate: the caller keeps the user signed in.
+      await baitong.logout.invoke();
       setUser(null);
-      setStatus('authenticated');
+      setStatus('unauthenticated');
       setReady(true);
+      clearAuthCache();
       return;
     }
 

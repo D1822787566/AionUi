@@ -35,6 +35,18 @@ import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import '../model-provider.css';
 
 /**
+ * AionCore 托管的百通内置供应商。
+ * Baitong provider row owned by AionCore.
+ *
+ * 它的模型列表、地址和密钥来自百通设置页，编辑/删除都由服务端拒绝：
+ * 界面在这里隐藏对应的入口，而不是让用户点了之后收到 400。
+ * Its model list, URL and key come from the Baitong settings page; the server
+ * rejects edits and deletes, so the UI hides those entries instead of letting
+ * the user click into a 400.
+ */
+const isBuiltinProvider = (platform: IProvider): boolean => platform.platform === 'baitong';
+
+/**
  * 获取协议显示标签颜色
  * Get protocol badge color
  */
@@ -424,6 +436,7 @@ const ModelModalContent: React.FC = () => {
             {(data || []).map((platform: IProvider) => {
               const key = platform.id;
               const isExpanded = collapseKey[platform.id] ?? false;
+              const builtin = isBuiltinProvider(platform);
               return (
                 <Collapse
                   activeKey={isExpanded ? ['image-generation'] : []}
@@ -450,6 +463,11 @@ const ModelModalContent: React.FC = () => {
                         >
                           {platform.name}
                         </span>
+                        {builtin && (
+                          <Tag size='small' color='arcoblue' className='shrink-0'>
+                            {t('settings.builtinProvider')}
+                          </Tag>
+                        )}
                         <div
                           className='flex items-center gap-8px shrink-0'
                           onClick={(e) => {
@@ -466,16 +484,22 @@ const ModelModalContent: React.FC = () => {
                             >
                               {t('settings.modelCount')}（{(platform.models ?? []).length}）
                             </span>
-                            <span className='mx-6px'>|</span>
-                            <span
-                              className='cursor-pointer hover:text-t-primary transition-colors'
-                              onClick={() => editModalCtrl.open({ data: platform })}
-                            >
-                              {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
-                            </span>
+                            {!builtin && (
+                              <>
+                                <span className='mx-6px'>|</span>
+                                <span
+                                  className='cursor-pointer hover:text-t-primary transition-colors'
+                                  onClick={() => editModalCtrl.open({ data: platform })}
+                                >
+                                  {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
+                                </span>
+                              </>
+                            )}
                           </span>
                           <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
-                            {(platform.models ?? []).length} / {getApiKeyCount(platform.api_key)}
+                            {builtin
+                              ? (platform.models ?? []).length
+                              : `${(platform.models ?? []).length} / ${getApiKeyCount(platform.api_key)}`}
                           </span>
                           {/* 供应商启用开关 / Provider enable switch */}
                           <Switch
@@ -483,30 +507,39 @@ const ModelModalContent: React.FC = () => {
                             checked={getProviderState(platform).checked}
                             onChange={() => toggleProviderEnabled(platform)}
                           />
-                          <div className='flex items-center gap-4px'>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Plus size='14' />}
-                              onClick={() => addModelModalCtrl.open({ data: platform })}
-                            />
-                            <Popconfirm
-                              title={t('settings.deleteAllModelConfirm')}
-                              onOk={() => removePlatform(platform.id)}
-                            >
+                          {builtin ? (
+                            // 模型目录由百通设置页管理：这里不给新增/编辑/删除入口。
+                            // The catalog belongs to the Baitong settings page, so
+                            // there is nothing to add, edit or delete here.
+                            <Tooltip content={t('settings.builtinProviderHint')}>
+                              <Info theme='outline' size='14' className='text-t-secondary' />
+                            </Tooltip>
+                          ) : (
+                            <div className='flex items-center gap-4px'>
                               <Button
                                 size='mini'
                                 className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                                icon={<Minus size='14' />}
+                                icon={<Plus size='14' />}
+                                onClick={() => addModelModalCtrl.open({ data: platform })}
                               />
-                            </Popconfirm>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Write size='14' />}
-                              onClick={() => editModalCtrl.open({ data: platform })}
-                            />
-                          </div>
+                              <Popconfirm
+                                title={t('settings.deleteAllModelConfirm')}
+                                onOk={() => removePlatform(platform.id)}
+                              >
+                                <Button
+                                  size='mini'
+                                  className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                  icon={<Minus size='14' />}
+                                />
+                              </Popconfirm>
+                              <Button
+                                size='mini'
+                                className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                icon={<Write size='14' />}
+                                onClick={() => editModalCtrl.open({ data: platform })}
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                     }
