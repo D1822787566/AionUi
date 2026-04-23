@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import type { ConversationCompactionAudit } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation } from '@/common/config/storage';
 import { Button } from '@arco-design/web-react';
@@ -6,9 +7,9 @@ import type { SlashCommandMenuItem } from '@/renderer/components/chat/SlashComma
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { loadAllConversationMessagesPaged } from '@/renderer/utils/chat/messagePagination';
 import {
-  type ExportTranscriptLabels,
-  buildConversationExportText,
+  buildConversationDiagnosticExport,
   buildDefaultExportFileName,
+  formatConversationDiagnosticMarkdown,
   getDefaultExportFileNameSource,
   joinFilePath,
   normalizeExportFileName,
@@ -67,19 +68,6 @@ export function useConversationExport(options: UseConversationExportOptions): Us
   const conversationRef = useRef<TChatConversation | null>(null);
   const messagesRef = useRef<TMessage[] | null>(null);
   const transcriptRef = useRef<string | null>(null);
-  const transcriptLabels = useMemo<ExportTranscriptLabels>(
-    () => ({
-      conversation: t('messages.export.conversationLabel'),
-      conversation_id: t('messages.export.conversationIdLabel'),
-      exportedAt: t('messages.export.exportedAtLabel'),
-      type: t('messages.export.typeLabel'),
-      noMessages: t('messages.export.noMessages'),
-      user: t('messages.export.userLabel'),
-      assistant: t('messages.export.assistantLabel'),
-      system: t('messages.export.systemLabel'),
-    }),
-    [t]
-  );
 
   const closeExportFlow = useCallback(() => {
     setStep('closed');
@@ -121,10 +109,20 @@ export function useConversationExport(options: UseConversationExportOptions): Us
 
     const messages = messagesRef.current ?? (await loadAllConversationMessagesPaged(conversation_id));
     messagesRef.current = messages;
-    const transcript = buildConversationExportText(conversation, messages, transcriptLabels);
+    let compactionAudit: ConversationCompactionAudit[] = [];
+    try {
+      const response = await ipcBridge.database.getConversationCompactionAudit.invoke({ conversation_id });
+      compactionAudit = response.items;
+    } catch (error) {
+      // Keep export usable with an older backend. Its coverage section will
+      // explicitly show that no pre-compaction snapshots were returned.
+      console.warn('[useConversationExport] Failed to load compaction audit:', error);
+    }
+    const diagnostic = buildConversationDiagnosticExport(conversation, messages, compactionAudit);
+    const transcript = formatConversationDiagnosticMarkdown(diagnostic);
     transcriptRef.current = transcript;
     return transcript;
-  }, [conversation_id, loadConversation, transcriptLabels]);
+  }, [conversation_id, loadConversation]);
 
   const openExportFlow = useCallback(async () => {
     if (!conversation_id) {

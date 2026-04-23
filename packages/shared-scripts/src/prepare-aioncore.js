@@ -2,10 +2,10 @@
  * Prepare aioncore binary for packaging.
  *
  * Resolution order:
- *  1. GitHub Actions artifact download when AIONUI_BACKEND_RUN_ID is set
- *  2. GitHub release download (requires version or defaults to "latest")
- *  3. Complete local bundle from AIONUI_BACKEND_LOCAL_BUNDLE_DIR
- *  4. Local binary fallback from AIONUI_BACKEND_LOCAL_BINARY
+ *  1. Complete local bundle from AIONUI_BACKEND_LOCAL_BUNDLE_DIR
+ *  2. GitHub Actions artifact download when AIONUI_BACKEND_RUN_ID is set
+ *  3. Explicit local binary from AIONUI_BACKEND_LOCAL_BINARY
+ *  4. GitHub release download (requires version or defaults to "latest")
  *
  * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/
  *   - aioncore[.exe]
@@ -520,21 +520,7 @@ function prepareAioncore(options) {
     console.log(`  Downloaded from GitHub Actions artifact`);
   }
 
-  // 2. Download from GitHub releases.
-  if (!sourcePath && tag) {
-    try {
-      const result = downloadAndExtract(platform, arch, tag);
-      sourcePath = result.binaryPath;
-      tempDir = result.tempDir;
-      sourceType = 'download';
-      sourceDetail = { url: result.url };
-      console.log(`  Downloaded from GitHub releases`);
-    } catch (error) {
-      console.warn(`  Download failed: ${error.message}`);
-    }
-  }
-
-  // 3. Use an explicitly supplied local cache when network download is unavailable.
+  // 2. Prefer an explicitly supplied local binary over a release download.
   if (!sourcePath) {
     const localBinary = (process.env.AIONUI_BACKEND_LOCAL_BINARY || '').trim();
     if (localBinary) {
@@ -547,6 +533,20 @@ function prepareAioncore(options) {
       } else {
         console.warn(`  Local aioncore binary not found: ${resolvedLocalBinary}`);
       }
+    }
+  }
+
+  // 3. Download from GitHub releases.
+  if (!sourcePath && tag) {
+    try {
+      const result = downloadAndExtract(platform, arch, tag);
+      sourcePath = result.binaryPath;
+      tempDir = result.tempDir;
+      sourceType = 'download';
+      sourceDetail = { url: result.url };
+      console.log(`  Downloaded from GitHub releases`);
+    } catch (error) {
+      console.warn(`  Download failed: ${error.message}`);
     }
   }
 

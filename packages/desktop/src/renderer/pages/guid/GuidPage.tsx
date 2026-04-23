@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import { buildGuidSlashCommands } from '@/common/chat/slash/guidSlashCommands';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
-import { resolveLocaleKey } from '@/common/utils';
+import { resolveLocaleKey, uuid } from '@/common/utils';
 import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
@@ -135,6 +135,10 @@ const GuidPage: React.FC = () => {
   const modelSelection = useGuidModelSelection('aionrs');
 
   const navState = location.state as GuidNavigationState | null;
+  // Reserve the conversation identity before the first upload. The backend
+  // otherwise falls back to the shared `general` upload directory until the
+  // first send creates the conversation.
+  const draftConversationId = useState(() => uuid())[0];
   const resetAssistantRequested = navState?.resetAssistant === true;
   const preselectAssistantId = navState?.selectedAssistantId;
   const agentSelection = useGuidAssistantSelection({
@@ -145,6 +149,7 @@ const GuidPage: React.FC = () => {
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
+    conversation_id: draftConversationId,
   });
   // The `/open` builtin + attach picker browse the backend machine's filesystem
   // (native dialog / server-fs) → `local` refs, not uploads.
@@ -246,6 +251,7 @@ const GuidPage: React.FC = () => {
   );
 
   const send = useGuidSend({
+    conversation_id: draftConversationId,
     // Input state
     input: guidInput.input,
     setInput: guidInput.setInput,
@@ -615,6 +621,7 @@ const GuidPage: React.FC = () => {
   const actionRowNode = (
     <GuidActionRow
       files={displayFilePaths}
+      conversation_id={draftConversationId}
       onFilesUploaded={guidInput.handleFilesUploaded}
       onFilesPicked={guidInput.handleFilesPicked}
       modelSelectorNode={modelSelectorNode}

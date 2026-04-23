@@ -74,6 +74,7 @@ const SubmenuSearchList: React.FC<{
 type GuidActionRowProps = {
   // File handling
   files: string[];
+  conversation_id: string;
   /** Device uploads (browser input → managed dir): sent as `upload` refs. */
   onFilesUploaded: (paths: string[]) => void;
   /** Backend-machine picker (native dialog / server-fs browse): sent as `local` refs. */
@@ -119,6 +120,7 @@ type GuidActionRowProps = {
 
 const GuidActionRow: React.FC<GuidActionRowProps> = ({
   files,
+  conversation_id,
   onFilesPicked,
   onFilesUploaded,
   modelSelectorNode,
@@ -176,7 +178,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       if (!fileList || fileList.length === 0) return;
       setUploading(true);
       try {
-        const processed = await FileService.processDroppedFiles(fileList);
+        const processed = await FileService.processDroppedFiles(fileList, conversation_id);
         if (processed.length > 0) {
           onFilesUploaded(processed.map((f) => f.path));
         }
@@ -188,7 +190,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       // Reset so the same file can be re-selected
       e.target.value = '';
     },
-    [onFilesUploaded, t]
+    [conversation_id, onFilesUploaded, t]
   );
 
   const getModeDisplayLabel = (mode: AgentModeOption): string =>

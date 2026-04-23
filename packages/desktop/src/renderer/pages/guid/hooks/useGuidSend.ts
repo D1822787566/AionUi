@@ -18,6 +18,7 @@ import { mutate as swrMutate } from 'swr';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 
 export type GuidSendDeps = {
+  conversation_id: string;
   // Input state
   input: string;
   setInput: React.Dispatch<React.SetStateAction<string>>;
@@ -68,6 +69,7 @@ export type GuidSendResult = {
  */
 export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const {
+    conversation_id,
     input,
     setInput,
     files,
@@ -177,6 +179,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       }
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
+          id: conversation_id,
           name: input,
           model: current_model,
           assistant: {
@@ -232,6 +235,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     try {
       const conversation = await ipcBridge.conversation.create.invoke({
+        id: conversation_id,
         name: input,
         assistant: {
           id: assistantConversationId,

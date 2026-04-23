@@ -36,12 +36,13 @@ export type GuidInputResult = {
 
 type UseGuidInputOptions = {
   locationState: { workspace?: string } | null;
+  conversation_id: string;
 };
 
 /**
  * Hook that manages input state, file handling, and drag/paste for the Guid page.
  */
-export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputResult => {
+export const useGuidInput = ({ locationState, conversation_id }: UseGuidInputOptions): GuidInputResult => {
   const [input, setInput] = useState('');
   const [files, setFiles] = useState<ChatFileRef[]>([]);
   const [dir, setDir] = useState<string>('');
@@ -84,12 +85,14 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
   const { isFileDragging, dragHandlers } = useDragUpload({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesPasted,
+    conversation_id,
   });
 
   // Use shared PasteService integration (paste appends to existing files)
   const { onPaste, onFocus } = usePasteService({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesPasted,
+    conversation_id,
     onTextPaste: (text: string) => {
       const textarea = document.activeElement as HTMLTextAreaElement | null;
       if (textarea && textarea.tagName === 'TEXTAREA') {
