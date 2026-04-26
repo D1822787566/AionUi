@@ -25,6 +25,21 @@ vi.mock('electron', () => ({
   screen: {
     getPrimaryDisplay: () => primaryDisplay,
     getAllDisplays: () => displays,
+    getDisplayMatching: (rect: { x: number; y: number; width: number; height: number }) => {
+      let best = primaryDisplay;
+      let bestArea = -1;
+      for (const d of displays) {
+        const wa = d.workArea;
+        const overlapW = Math.max(0, Math.min(rect.x + rect.width, wa.x + wa.width) - Math.max(rect.x, wa.x));
+        const overlapH = Math.max(0, Math.min(rect.y + rect.height, wa.y + wa.height) - Math.max(rect.y, wa.y));
+        const area = overlapW * overlapH;
+        if (area > bestArea) {
+          bestArea = area;
+          best = d;
+        }
+      }
+      return best;
+    },
   },
 }));
 
@@ -93,20 +108,21 @@ describe('resolveInitialBounds', () => {
     expect(bounds.x).toBeUndefined();
   });
 
-  it('accepts saved bounds that partially overlap a connected display', () => {
+  it('clamps saved bounds that straddle the right edge back inside the display', () => {
     setDisplays([
       {
         workArea: { x: 0, y: 0, width: 1920, height: 1080 },
         workAreaSize: { width: 1920, height: 1080 },
       },
     ]);
-    // Window straddles right edge of the display — still reachable.
+    // Window straddles right edge of the display — reachable, but the saved
+    // position would leave 1080px hanging off-screen, so it gets pulled back.
     loadSavedWindowBounds({ x: 1800, y: 100, width: 1200, height: 800 });
     const bounds = resolveInitialBounds();
-    expect(bounds).toEqual({ x: 1800, y: 100, width: 1200, height: 800 });
+    expect(bounds).toEqual({ x: 720, y: 100, width: 1200, height: 800 });
   });
 
-  it('accepts saved bounds that overlap a secondary display', () => {
+  it('keeps saved bounds that fit on a secondary display', () => {
     setDisplays([
       {
         workArea: { x: 0, y: 0, width: 1920, height: 1080 },
@@ -120,6 +136,73 @@ describe('resolveInitialBounds', () => {
     loadSavedWindowBounds({ x: 3000, y: 200, width: 1200, height: 800 });
     const bounds = resolveInitialBounds();
     expect(bounds).toEqual({ x: 3000, y: 200, width: 1200, height: 800 });
+  });
+
+  it('shrinks and repositions bounds captured on a larger display', () => {
+    setDisplays([
+      {
+        workArea: { x: 0, y: 0, width: 1920, height: 1040 },
+        workAreaSize: { width: 1920, height: 1040 },
+      },
+    ]);
+    // Saved on a 2560x1440 screen, reopened on a 1920x1040 one.
+    loadSavedWindowBounds({ x: 512, y: 226, width: 2048, height: 1276 });
+    const bounds = resolveInitialBounds();
+    expect(bounds).toEqual({ x: 0, y: 0, width: 1920, height: 1040 });
+  });
+
+  it('pulls a bottom-right overflow back to the bottom-right of the work area', () => {
+    setDisplays([
+      {
+        workArea: { x: 0, y: 0, width: 1920, height: 1040 },
+        workAreaSize: { width: 1920, height: 1040 },
+      },
+    ]);
+    loadSavedWindowBounds({ x: 1400, y: 700, width: 1536, height: 988 });
+    const bounds = resolveInitialBounds();
+    expect(bounds).toEqual({ x: 384, y: 52, width: 1536, height: 988 });
+  });
+
+  it('clamps into a display whose work area has a non-zero origin', () => {
+    setDisplays([
+      {
+        workArea: { x: 0, y: 0, width: 1920, height: 1080 },
+        workAreaSize: { width: 1920, height: 1080 },
+      },
+      {
+        workArea: { x: 1920, y: -200, width: 1600, height: 900 },
+        workAreaSize: { width: 1600, height: 900 },
+      },
+    ]);
+    // Hangs off the right edge of the secondary display.
+    loadSavedWindowBounds({ x: 3200, y: -300, width: 1200, height: 800 });
+    const bounds = resolveInitialBounds();
+    expect(bounds).toEqual({ x: 2320, y: -200, width: 1200, height: 800 });
+  });
+
+  it('keeps a window straddling two adjacent displays untouched', () => {
+    setDisplays([
+      {
+        workArea: { x: 0, y: 0, width: 1920, height: 1080 },
+        workAreaSize: { width: 1920, height: 1080 },
+      },
+      {
+        workArea: { x: 1920, y: 0, width: 1920, height: 1080 },
+        workAreaSize: { width: 1920, height: 1080 },
+      },
+    ]);
+    // Deliberately half on each monitor — inside the combined work area.
+    loadSavedWindowBounds({ x: 1400, y: 100, width: 1000, height: 800 });
+    const bounds = resolveInitialBounds();
+    expect(bounds).toEqual({ x: 1400, y: 100, width: 1000, height: 800 });
+  });
+
+  it('leaves already-fitting saved bounds untouched on repeated resolution', () => {
+    loadSavedWindowBounds({ x: 100, y: 100, width: 1200, height: 800 });
+    const first = resolveInitialBounds();
+    const second = resolveInitialBounds();
+    expect(first).toEqual({ x: 100, y: 100, width: 1200, height: 800 });
+    expect(second).toEqual(first);
   });
 
   it('keeps saved size-only (no x/y) and does not reject for missing position', () => {
