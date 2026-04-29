@@ -1423,5 +1423,12 @@
   "capabilityFactoryReplaceModified": "Sauvegarder et remplacer les modifications locales",
   "capabilityFactoryFetchCatalog": "Récupérer le catalogue",
   "capabilityFactoryRefreshCatalog": "Actualiser le catalogue",
-  "capabilityFactoryCatalogUpdated": "Catalogue mis à jour : {{count}} capacités."
+  "capabilityFactoryCatalogUpdated": "Catalogue mis à jour : {{count}} capacités.",
+  "capabilityFactoryNoInstallations": "Aucune capacité n’est encore installée. Installez un Skill ou un MCP depuis Découvrir les capacités.",
+  "capabilityFactoryBrowse": "Découvrir les capacités",
+  "capabilityFactoryNoResults": "Aucune capacité ne correspond à la recherche ou aux filtres actuels.",
+  "capabilityFactoryClearFilters": "Effacer les filtres",
+  "capabilityFactoryCatalogEmpty": "Aucune capacité publiée n’est disponible dans le catalogue. Actualisez-le et réessayez.",
+  "capabilityFactoryUpdateAvailable": "Nouvelle version v{{version}}",
+  "capabilityFactoryUpdatesFilter": "Mises à jour disponibles"
 }

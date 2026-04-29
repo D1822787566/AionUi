@@ -1423,5 +1423,12 @@
   "capabilityFactoryReplaceModified": "پشتیبان‌گیری و جایگزینی تغییرات محلی",
   "capabilityFactoryFetchCatalog": "دریافت فهرست",
   "capabilityFactoryRefreshCatalog": "بازخوانی فهرست",
-  "capabilityFactoryCatalogUpdated": "فهرست به‌روزرسانی شد: {{count}} قابلیت."
+  "capabilityFactoryCatalogUpdated": "فهرست به‌روزرسانی شد: {{count}} قابلیت.",
+  "capabilityFactoryNoInstallations": "هنوز قابلیتی نصب نشده است. یک Skill یا MCP را از بخش کشف قابلیت‌ها نصب کنید.",
+  "capabilityFactoryBrowse": "کشف قابلیت‌ها",
+  "capabilityFactoryNoResults": "هیچ قابلیتی با جست‌وجو یا فیلترهای فعلی مطابقت ندارد.",
+  "capabilityFactoryClearFilters": "پاک کردن فیلترها",
+  "capabilityFactoryCatalogEmpty": "قابلیت منتشرشده‌ای در فهرست موجود نیست. فهرست را بازخوانی و دوباره تلاش کنید.",
+  "capabilityFactoryUpdateAvailable": "نسخه جدید v{{version}}",
+  "capabilityFactoryUpdatesFilter": "به‌روزرسانی موجود"
 }

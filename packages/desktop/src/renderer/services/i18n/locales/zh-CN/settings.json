@@ -1424,5 +1424,12 @@
   "capabilityFactoryReplaceModified": "备份并覆盖本地修改",
   "capabilityFactoryFetchCatalog": "获取目录",
   "capabilityFactoryRefreshCatalog": "刷新目录",
-  "capabilityFactoryCatalogUpdated": "目录已更新，共 {{count}} 个能力。"
+  "capabilityFactoryCatalogUpdated": "目录已更新，共 {{count}} 个能力。",
+  "capabilityFactoryNoInstallations": "还没有安装能力。请先从“发现能力”安装 Skill 或 MCP。",
+  "capabilityFactoryBrowse": "去发现能力",
+  "capabilityFactoryNoResults": "没有符合当前搜索或筛选条件的能力。",
+  "capabilityFactoryClearFilters": "清除筛选",
+  "capabilityFactoryCatalogEmpty": "目录中暂无已发布能力，请刷新目录后重试。",
+  "capabilityFactoryUpdateAvailable": "有新版本 v{{version}}",
+  "capabilityFactoryUpdatesFilter": "有新版本"
 }

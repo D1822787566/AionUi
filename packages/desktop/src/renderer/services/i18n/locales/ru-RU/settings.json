@@ -1437,5 +1437,12 @@
   "capabilityFactoryReplaceModified": "Создать резервную копию и заменить локальные изменения",
   "capabilityFactoryFetchCatalog": "Получить каталог",
   "capabilityFactoryRefreshCatalog": "Обновить каталог",
-  "capabilityFactoryCatalogUpdated": "Каталог обновлён: {{count}} возможностей."
+  "capabilityFactoryCatalogUpdated": "Каталог обновлён: {{count}} возможностей.",
+  "capabilityFactoryNoInstallations": "Возможности ещё не установлены. Установите Skill или MCP в разделе обзора возможностей.",
+  "capabilityFactoryBrowse": "Обзор возможностей",
+  "capabilityFactoryNoResults": "Нет возможностей, соответствующих текущему поиску или фильтрам.",
+  "capabilityFactoryClearFilters": "Сбросить фильтры",
+  "capabilityFactoryCatalogEmpty": "В каталоге нет опубликованных возможностей. Обновите каталог и повторите попытку.",
+  "capabilityFactoryUpdateAvailable": "Новая версия v{{version}}",
+  "capabilityFactoryUpdatesFilter": "Доступны обновления"
 }

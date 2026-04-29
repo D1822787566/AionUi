@@ -1423,5 +1423,12 @@
   "capabilityFactoryReplaceModified": "Lokale Änderungen sichern und ersetzen",
   "capabilityFactoryFetchCatalog": "Katalog abrufen",
   "capabilityFactoryRefreshCatalog": "Katalog aktualisieren",
-  "capabilityFactoryCatalogUpdated": "Katalog aktualisiert: {{count}} Funktionen."
+  "capabilityFactoryCatalogUpdated": "Katalog aktualisiert: {{count}} Funktionen.",
+  "capabilityFactoryNoInstallations": "Noch keine Funktionen installiert. Installieren Sie einen Skill oder MCP unter Funktionen entdecken.",
+  "capabilityFactoryBrowse": "Funktionen entdecken",
+  "capabilityFactoryNoResults": "Keine Funktionen entsprechen der aktuellen Suche oder den Filtern.",
+  "capabilityFactoryClearFilters": "Filter zurücksetzen",
+  "capabilityFactoryCatalogEmpty": "Im Katalog sind keine veröffentlichten Funktionen verfügbar. Aktualisieren Sie ihn und versuchen Sie es erneut.",
+  "capabilityFactoryUpdateAvailable": "Neue Version v{{version}}",
+  "capabilityFactoryUpdatesFilter": "Updates verfügbar"
 }

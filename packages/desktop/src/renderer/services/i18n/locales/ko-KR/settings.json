@@ -1425,5 +1425,12 @@
   "capabilityFactoryReplaceModified": "백업 후 로컬 변경 사항 교체",
   "capabilityFactoryFetchCatalog": "카탈로그 가져오기",
   "capabilityFactoryRefreshCatalog": "카탈로그 새로고침",
-  "capabilityFactoryCatalogUpdated": "카탈로그가 업데이트되었습니다. 총 {{count}}개 기능이 있습니다."
+  "capabilityFactoryCatalogUpdated": "카탈로그가 업데이트되었습니다. 총 {{count}}개 기능이 있습니다.",
+  "capabilityFactoryNoInstallations": "아직 설치된 기능이 없습니다. 기능 찾아보기에서 Skill 또는 MCP를 설치하세요.",
+  "capabilityFactoryBrowse": "기능 찾아보기",
+  "capabilityFactoryNoResults": "현재 검색 또는 필터와 일치하는 기능이 없습니다.",
+  "capabilityFactoryClearFilters": "필터 지우기",
+  "capabilityFactoryCatalogEmpty": "카탈로그에 게시된 기능이 없습니다. 새로고침 후 다시 시도하세요.",
+  "capabilityFactoryUpdateAvailable": "새 버전 v{{version}}",
+  "capabilityFactoryUpdatesFilter": "업데이트 있음"
 }

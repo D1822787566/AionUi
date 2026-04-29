@@ -1425,5 +1425,12 @@
   "capabilityFactoryReplaceModified": "バックアップしてローカルの変更を置換",
   "capabilityFactoryFetchCatalog": "カタログを取得",
   "capabilityFactoryRefreshCatalog": "カタログを更新",
-  "capabilityFactoryCatalogUpdated": "カタログを更新しました。能力は{{count}}件です。"
+  "capabilityFactoryCatalogUpdated": "カタログを更新しました。能力は{{count}}件です。",
+  "capabilityFactoryNoInstallations": "能力はまだインストールされていません。「能力を探す」から Skill または MCP をインストールしてください。",
+  "capabilityFactoryBrowse": "能力を探す",
+  "capabilityFactoryNoResults": "現在の検索またはフィルターに一致する能力はありません。",
+  "capabilityFactoryClearFilters": "フィルターをクリア",
+  "capabilityFactoryCatalogEmpty": "カタログに公開済みの能力がありません。更新してもう一度お試しください。",
+  "capabilityFactoryUpdateAvailable": "新しいバージョン v{{version}}",
+  "capabilityFactoryUpdatesFilter": "更新あり"
 }

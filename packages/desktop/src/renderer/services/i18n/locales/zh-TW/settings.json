@@ -1425,5 +1425,12 @@
   "capabilityFactoryReplaceModified": "備份並覆蓋本機修改",
   "capabilityFactoryFetchCatalog": "取得目錄",
   "capabilityFactoryRefreshCatalog": "重新整理目錄",
-  "capabilityFactoryCatalogUpdated": "目錄已更新，共 {{count}} 個能力。"
+  "capabilityFactoryCatalogUpdated": "目錄已更新，共 {{count}} 個能力。",
+  "capabilityFactoryNoInstallations": "尚未安裝能力。請先從「探索能力」安裝 Skill 或 MCP。",
+  "capabilityFactoryBrowse": "前往探索能力",
+  "capabilityFactoryNoResults": "沒有符合目前搜尋或篩選條件的能力。",
+  "capabilityFactoryClearFilters": "清除篩選",
+  "capabilityFactoryCatalogEmpty": "目錄中暫無已發布能力，請重新整理目錄後再試。",
+  "capabilityFactoryUpdateAvailable": "有新版本 v{{version}}",
+  "capabilityFactoryUpdatesFilter": "有新版本"
 }

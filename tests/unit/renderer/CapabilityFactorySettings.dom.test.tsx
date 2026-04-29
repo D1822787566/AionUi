@@ -72,7 +72,7 @@ vi.mock('@/renderer/hooks/config/useConfig', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, options?: { count?: number }) =>
+    t: (key: string, options?: { count?: number; version?: string }) =>
       ({
         'common.delete': '删除',
         'common.deleteSuccess': '已删除',
@@ -82,6 +82,13 @@ vi.mock('react-i18next', () => ({
         'settings.capabilityFactoryFetchCatalog': '获取目录',
         'settings.capabilityFactoryRefreshCatalog': '刷新目录',
         'settings.capabilityFactoryCatalogUpdated': `目录已更新，共 ${String(options?.count ?? 0)} 个能力。`,
+        'settings.capabilityFactoryNoInstallations': '还没有安装能力。请先从“发现能力”安装 Skill 或 MCP。',
+        'settings.capabilityFactoryBrowse': '去发现能力',
+        'settings.capabilityFactoryNoResults': '没有符合当前搜索或筛选条件的能力。',
+        'settings.capabilityFactoryClearFilters': '清除筛选',
+        'settings.capabilityFactoryCatalogEmpty': '目录中暂无已发布能力，请刷新目录后重试。',
+        'settings.capabilityFactoryUpdateAvailable': `有新版本 v${String(options?.version ?? '')}`,
+        'settings.capabilityFactoryUpdatesFilter': '有新版本',
         'settings.capabilityFactoryUpdate': '更新',
         'settings.capabilityFactoryRollback': '回退',
         'settings.capabilityFactoryReplaceModified': '备份并覆盖本地修改',
@@ -157,6 +164,52 @@ describe('CapabilityFactorySettings catalog persistence', () => {
     render(<CapabilityFactorySettings />);
 
     expect(screen.queryByText('Writer')).toBeNull();
+  });
+
+  it('explains an empty my-capabilities view and links back to discovery', async () => {
+    render(<CapabilityFactorySettings />);
+    fireEvent.click(screen.getByRole('button', { name: '我的能力' }));
+
+    expect(await screen.findByText('还没有安装能力。请先从“发现能力”安装 Skill 或 MCP。')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '去发现能力' }));
+
+    expect(screen.getByLabelText('能力工厂地址')).toBeTruthy();
+  });
+
+  it('explains an empty filtered result and can clear the filters', async () => {
+    mocks.getCoreCatalog.mockResolvedValue({
+      items: [{ id: 'writer', kind: 'skill', name: 'Writer', description: 'Writes documents', version: '1.0.0' }],
+      installations: [],
+    });
+
+    render(<CapabilityFactorySettings />);
+    await screen.findByText('Writer');
+    fireEvent.click(screen.getByRole('button', { name: 'MCP' }));
+
+    expect(screen.getByText('没有符合当前搜索或筛选条件的能力。')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: '清除筛选' }));
+    expect(await screen.findByText('Writer')).toBeTruthy();
+  });
+
+  it('marks catalog updates without requiring a manual check', async () => {
+    mocks.getCoreCatalog.mockResolvedValue({
+      items: [{ id: 'writer', kind: 'skill', name: 'Writer', description: 'Writes documents', version: '2.0.0' }],
+      installations: [
+        {
+          installationId: 'skill:writer',
+          kind: 'skill',
+          capabilityId: 'writer',
+          localResourceId: 'writer-local',
+          installedVersion: '1.0.0',
+          state: 'update_available',
+        },
+      ],
+    });
+
+    render(<CapabilityFactorySettings />);
+
+    expect(await screen.findByText('有新版本 v2.0.0')).toBeTruthy();
+    expect(mocks.checkInstallation).not.toHaveBeenCalled();
   });
 
   it('shows Core-managed installations in the my-capabilities view', async () => {

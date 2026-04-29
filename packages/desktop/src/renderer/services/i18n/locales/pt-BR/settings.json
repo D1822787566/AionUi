@@ -1426,5 +1426,12 @@
   "capabilityFactoryReplaceModified": "Fazer backup e substituir alterações locais",
   "capabilityFactoryFetchCatalog": "Obter catálogo",
   "capabilityFactoryRefreshCatalog": "Atualizar catálogo",
-  "capabilityFactoryCatalogUpdated": "Catálogo atualizado: {{count}} capacidades."
+  "capabilityFactoryCatalogUpdated": "Catálogo atualizado: {{count}} capacidades.",
+  "capabilityFactoryNoInstallations": "Nenhuma capacidade instalada. Instale um Skill ou MCP em Descobrir capacidades.",
+  "capabilityFactoryBrowse": "Descobrir capacidades",
+  "capabilityFactoryNoResults": "Nenhuma capacidade corresponde à pesquisa ou aos filtros atuais.",
+  "capabilityFactoryClearFilters": "Limpar filtros",
+  "capabilityFactoryCatalogEmpty": "Não há capacidades publicadas no catálogo. Atualize e tente novamente.",
+  "capabilityFactoryUpdateAvailable": "Nova versão v{{version}}",
+  "capabilityFactoryUpdatesFilter": "Atualizações disponíveis"
 }

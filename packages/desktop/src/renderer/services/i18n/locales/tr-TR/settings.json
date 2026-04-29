@@ -1423,5 +1423,12 @@
   "capabilityFactoryReplaceModified": "Yerel değişiklikleri yedekle ve değiştir",
   "capabilityFactoryFetchCatalog": "Kataloğu getir",
   "capabilityFactoryRefreshCatalog": "Kataloğu yenile",
-  "capabilityFactoryCatalogUpdated": "Katalog güncellendi: {{count}} yetenek."
+  "capabilityFactoryCatalogUpdated": "Katalog güncellendi: {{count}} yetenek.",
+  "capabilityFactoryNoInstallations": "Henüz yüklü yetenek yok. Yetenekleri keşfet bölümünden bir Skill veya MCP yükleyin.",
+  "capabilityFactoryBrowse": "Yetenekleri keşfet",
+  "capabilityFactoryNoResults": "Geçerli arama veya filtrelerle eşleşen yetenek yok.",
+  "capabilityFactoryClearFilters": "Filtreleri temizle",
+  "capabilityFactoryCatalogEmpty": "Katalogda yayımlanmış yetenek yok. Yenileyip tekrar deneyin.",
+  "capabilityFactoryUpdateAvailable": "Yeni sürüm v{{version}}",
+  "capabilityFactoryUpdatesFilter": "Güncelleme var"
 }

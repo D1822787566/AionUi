@@ -256,6 +256,7 @@ const CapabilityFactorySettings: React.FC = () => {
 
   useEffect(() => setPage(1), [installFilter, kindFilter, query]);
   const pageItems = visibleItems.slice((page - 1) * pageSize, page * pageSize);
+  const hasActiveFilters = Boolean(query.trim()) || kindFilter !== 'all' || installFilter !== 'all';
 
   useEffect(() => {
     if (!selectedItem || selectedItem.kind !== 'skill') return;
@@ -311,85 +312,101 @@ const CapabilityFactorySettings: React.FC = () => {
           </Button>
         </div>
         {activeView === 'mine' ? (
-          <div className='grid grid-cols-1 gap-12px md:grid-cols-2'>
-            {Array.from(installations.values()).map((installation) => {
-              const item = items.find(
-                (candidate) => candidate.kind === installation.kind && candidate.id === installation.capabilityId
-              );
-              return (
-                <section
-                  key={installation.installationId}
-                  className='rounded-12px border border-border-2 bg-2 p-16px text-13px text-t-secondary'
-                >
-                  <div className='text-12px text-t-tertiary'>
-                    {installation.kind.toUpperCase()} · v{installation.installedVersion}
-                  </div>
-                  <div className='mt-4px text-16px font-600 text-t-primary'>
-                    {item?.name ?? installation.capabilityId}
-                  </div>
-                  {item ? <p className='my-8px text-13px leading-relaxed'>{item.description}</p> : null}
-                  <div className='mt-8px break-all'>{installation.localResourceId}</div>
-                  <div className='mt-8px'>{installation.state}</div>
-                  {item ? (
-                    <Button className='mt-10px' size='mini' type='secondary' onClick={() => setSelectedItem(item)}>
-                      查看详情
-                    </Button>
-                  ) : null}
-                  <Button
-                    className={item ? 'ml-8px mt-10px' : 'mt-10px'}
-                    size='mini'
-                    type='secondary'
-                    loading={workingId === installation.installationId}
-                    onClick={() => void checkInstallation(installation)}
+          installations.size === 0 ? (
+            <div className='rounded-12px border border-dashed border-border-2 px-16px py-40px text-center'>
+              <p className='m-0 text-13px text-t-secondary'>{t('settings.capabilityFactoryNoInstallations')}</p>
+              <Button className='mt-12px' type='primary' onClick={() => setActiveView('discover')}>
+                {t('settings.capabilityFactoryBrowse')}
+              </Button>
+            </div>
+          ) : (
+            <div className='grid grid-cols-1 gap-12px md:grid-cols-2'>
+              {Array.from(installations.values()).map((installation) => {
+                const item = items.find(
+                  (candidate) => candidate.kind === installation.kind && candidate.id === installation.capabilityId
+                );
+                return (
+                  <section
+                    key={installation.installationId}
+                    className='rounded-12px border border-border-2 bg-2 p-16px text-13px text-t-secondary'
                   >
-                    {t('settings.checkForUpdates')}
-                  </Button>
-                  {installation.state === 'update_available' ? (
+                    <div className='flex flex-wrap items-center justify-between gap-8px text-12px text-t-tertiary'>
+                      <span>
+                        {installation.kind.toUpperCase()} · v{installation.installedVersion}
+                      </span>
+                      {installation.state === 'update_available' && item ? (
+                        <span className='rounded-10px bg-success-light-1 px-8px py-2px text-success-6'>
+                          {t('settings.capabilityFactoryUpdateAvailable', { version: item.version })}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className='mt-4px text-16px font-600 text-t-primary'>
+                      {item?.name ?? installation.capabilityId}
+                    </div>
+                    {item ? <p className='my-8px text-13px leading-relaxed'>{item.description}</p> : null}
+                    <div className='mt-8px break-all'>{installation.localResourceId}</div>
+                    <div className='mt-8px'>{installation.state}</div>
+                    {item ? (
+                      <Button className='mt-10px' size='mini' type='secondary' onClick={() => setSelectedItem(item)}>
+                        查看详情
+                      </Button>
+                    ) : null}
                     <Button
-                      className='ml-8px mt-10px'
-                      size='mini'
-                      type='primary'
-                      loading={workingId === installation.installationId}
-                      onClick={() => void updateInstallation(installation)}
-                    >
-                      {t('settings.capabilityFactoryUpdate')}
-                    </Button>
-                  ) : null}
-                  {installation.state === 'locally_modified' ? (
-                    <Button
-                      className='ml-8px mt-10px'
-                      size='mini'
-                      type='primary'
-                      loading={workingId === installation.installationId}
-                      onClick={() => void updateInstallation(installation, true)}
-                    >
-                      {t('settings.capabilityFactoryReplaceModified')}
-                    </Button>
-                  ) : null}
-                  {installation.backupVersion ? (
-                    <Button
-                      className='ml-8px mt-10px'
+                      className={item ? 'ml-8px mt-10px' : 'mt-10px'}
                       size='mini'
                       type='secondary'
                       loading={workingId === installation.installationId}
-                      onClick={() => void rollbackInstallation(installation)}
+                      onClick={() => void checkInstallation(installation)}
                     >
-                      {t('settings.capabilityFactoryRollback')}
+                      {t('settings.checkForUpdates')}
                     </Button>
-                  ) : null}
-                  <Button
-                    className='ml-8px mt-10px'
-                    size='mini'
-                    status='danger'
-                    loading={workingId === installation.installationId}
-                    onClick={() => uninstallCapability(installation, item?.name ?? installation.capabilityId)}
-                  >
-                    {t('common.delete', { defaultValue: '删除' })}
-                  </Button>
-                </section>
-              );
-            })}
-          </div>
+                    {installation.state === 'update_available' ? (
+                      <Button
+                        className='ml-8px mt-10px'
+                        size='mini'
+                        type='primary'
+                        loading={workingId === installation.installationId}
+                        onClick={() => void updateInstallation(installation)}
+                      >
+                        {t('settings.capabilityFactoryUpdate')}
+                      </Button>
+                    ) : null}
+                    {installation.state === 'locally_modified' ? (
+                      <Button
+                        className='ml-8px mt-10px'
+                        size='mini'
+                        type='primary'
+                        loading={workingId === installation.installationId}
+                        onClick={() => void updateInstallation(installation, true)}
+                      >
+                        {t('settings.capabilityFactoryReplaceModified')}
+                      </Button>
+                    ) : null}
+                    {installation.backupVersion ? (
+                      <Button
+                        className='ml-8px mt-10px'
+                        size='mini'
+                        type='secondary'
+                        loading={workingId === installation.installationId}
+                        onClick={() => void rollbackInstallation(installation)}
+                      >
+                        {t('settings.capabilityFactoryRollback')}
+                      </Button>
+                    ) : null}
+                    <Button
+                      className='ml-8px mt-10px'
+                      size='mini'
+                      status='danger'
+                      loading={workingId === installation.installationId}
+                      onClick={() => uninstallCapability(installation, item?.name ?? installation.capabilityId)}
+                    >
+                      {t('common.delete', { defaultValue: '删除' })}
+                    </Button>
+                  </section>
+                );
+              })}
+            </div>
+          )
         ) : null}
         {activeView === 'discover' ? (
           <>
@@ -450,7 +467,7 @@ const CapabilityFactorySettings: React.FC = () => {
                     ? '全部'
                     : status === 'installed'
                       ? t('settings.installed')
-                      : t('settings.checkForUpdates')}
+                      : t('settings.capabilityFactoryUpdatesFilter')}
                 </Button>
               ))}
             </div>
@@ -458,7 +475,7 @@ const CapabilityFactorySettings: React.FC = () => {
               <div className='py-32px text-center'>
                 <Spin />
               </div>
-            ) : (
+            ) : visibleItems.length > 0 ? (
               <div className='grid grid-cols-1 gap-12px md:grid-cols-2'>
                 {pageItems.map((item) => {
                   const isSkill = item.kind === 'skill';
@@ -472,8 +489,15 @@ const CapabilityFactorySettings: React.FC = () => {
                     >
                       <div className='flex items-start justify-between gap-12px'>
                         <div className='min-w-0'>
-                          <div className='text-12px text-t-tertiary'>
-                            {isSkill ? 'SKILL' : 'MCP'} · v{item.version}
+                          <div className='flex flex-wrap items-center gap-8px text-12px text-t-tertiary'>
+                            <span>
+                              {isSkill ? 'SKILL' : 'MCP'} · v{item.version}
+                            </span>
+                            {installation?.state === 'update_available' ? (
+                              <span className='rounded-10px bg-success-light-1 px-8px py-2px text-success-6'>
+                                {t('settings.capabilityFactoryUpdateAvailable', { version: item.version })}
+                              </span>
+                            ) : null}
                           </div>
                           <h2 className='my-4px text-16px font-600 text-t-primary'>{item.name}</h2>
                           <p className='m-0 text-13px leading-relaxed text-t-secondary'>{item.description}</p>
@@ -503,14 +527,30 @@ const CapabilityFactorySettings: React.FC = () => {
                   );
                 })}
               </div>
+            ) : (
+              <div className='rounded-12px border border-dashed border-border-2 px-16px py-32px text-center'>
+                <p className='m-0 text-13px text-t-secondary'>
+                  {items.length === 0
+                    ? t('settings.capabilityFactoryCatalogEmpty')
+                    : t('settings.capabilityFactoryNoResults')}
+                </p>
+                {items.length > 0 && hasActiveFilters ? (
+                  <Button
+                    className='mt-12px'
+                    size='small'
+                    onClick={() => {
+                      setQuery('');
+                      setKindFilter('all');
+                      setInstallFilter('all');
+                    }}
+                  >
+                    {t('settings.capabilityFactoryClearFilters')}
+                  </Button>
+                ) : null}
+              </div>
             )}
             {!loading && visibleItems.length > pageSize ? (
               <Pagination current={page} pageSize={pageSize} total={visibleItems.length} onChange={setPage} showTotal />
-            ) : null}
-            {!loading && platformUrl.trim() && items.length === 0 ? (
-              <div className='rounded-12px border border-dashed border-border-2 py-32px text-center text-13px text-t-secondary'>
-                暂无已发布能力，或请点击“获取目录”刷新。
-              </div>
             ) : null}
           </>
         ) : null}

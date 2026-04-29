@@ -1438,5 +1438,12 @@
   "capabilityFactoryReplaceModified": "Створити резервну копію та замінити локальні зміни",
   "capabilityFactoryFetchCatalog": "Отримати каталог",
   "capabilityFactoryRefreshCatalog": "Оновити каталог",
-  "capabilityFactoryCatalogUpdated": "Каталог оновлено: {{count}} можливостей."
+  "capabilityFactoryCatalogUpdated": "Каталог оновлено: {{count}} можливостей.",
+  "capabilityFactoryNoInstallations": "Можливості ще не встановлено. Установіть Skill або MCP у розділі огляду можливостей.",
+  "capabilityFactoryBrowse": "Огляд можливостей",
+  "capabilityFactoryNoResults": "Немає можливостей, що відповідають поточному пошуку або фільтрам.",
+  "capabilityFactoryClearFilters": "Очистити фільтри",
+  "capabilityFactoryCatalogEmpty": "У каталозі немає опублікованих можливостей. Оновіть каталог і спробуйте ще раз.",
+  "capabilityFactoryUpdateAvailable": "Нова версія v{{version}}",
+  "capabilityFactoryUpdatesFilter": "Доступні оновлення"
 }

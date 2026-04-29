@@ -1423,5 +1423,12 @@
   "capabilityFactoryReplaceModified": "Back up and replace local changes",
   "capabilityFactoryFetchCatalog": "Get catalog",
   "capabilityFactoryRefreshCatalog": "Refresh catalog",
-  "capabilityFactoryCatalogUpdated": "Catalog updated: {{count}} capabilities."
+  "capabilityFactoryCatalogUpdated": "Catalog updated: {{count}} capabilities.",
+  "capabilityFactoryNoInstallations": "No capabilities installed yet. Install a Skill or MCP from Discover capabilities.",
+  "capabilityFactoryBrowse": "Browse capabilities",
+  "capabilityFactoryNoResults": "No capabilities match the current search or filters.",
+  "capabilityFactoryClearFilters": "Clear filters",
+  "capabilityFactoryCatalogEmpty": "No published capabilities are available in the catalog. Refresh and try again.",
+  "capabilityFactoryUpdateAvailable": "New version v{{version}}",
+  "capabilityFactoryUpdatesFilter": "Updates available"
 }
