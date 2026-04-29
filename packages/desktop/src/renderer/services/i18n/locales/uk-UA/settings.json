@@ -1435,5 +1435,8 @@
   "capabilityFactoryConnection": "Стан підключення",
   "capabilityFactoryUpdate": "Оновити",
   "capabilityFactoryRollback": "Відкотити",
-  "capabilityFactoryReplaceModified": "Створити резервну копію та замінити локальні зміни"
+  "capabilityFactoryReplaceModified": "Створити резервну копію та замінити локальні зміни",
+  "capabilityFactoryFetchCatalog": "Отримати каталог",
+  "capabilityFactoryRefreshCatalog": "Оновити каталог",
+  "capabilityFactoryCatalogUpdated": "Каталог оновлено: {{count}} можливостей."
 }

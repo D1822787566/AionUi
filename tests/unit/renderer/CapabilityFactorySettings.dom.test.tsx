@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   readSkillPackage: vi.fn(),
   setSavedUrl: vi.fn(),
   showError: vi.fn(),
+  showSuccess: vi.fn(),
   confirmDelete: vi.fn(),
 }));
 
@@ -35,7 +36,7 @@ vi.mock('@arco-design/web-react', () => ({
   }: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> & { onChange?: (value: string) => void }) => (
     <input {...props} onChange={(event) => onChange?.(event.target.value)} />
   ),
-  Message: { error: mocks.showError, info: vi.fn(), success: vi.fn(), warning: vi.fn() },
+  Message: { error: mocks.showError, info: vi.fn(), success: mocks.showSuccess, warning: vi.fn() },
   Spin: () => <div>loading</div>,
   Modal: Object.assign(
     ({ children, style, visible }: React.PropsWithChildren<{ style?: React.CSSProperties; visible?: boolean }>) =>
@@ -71,13 +72,16 @@ vi.mock('@/renderer/hooks/config/useConfig', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) =>
+    t: (key: string, options?: { count?: number }) =>
       ({
         'common.delete': '删除',
         'common.deleteSuccess': '已删除',
         'settings.capabilityFactoryDiscover': '发现能力',
         'settings.capabilityFactoryMine': '我的能力',
         'settings.capabilityFactoryConnection': '连接状态',
+        'settings.capabilityFactoryFetchCatalog': '获取目录',
+        'settings.capabilityFactoryRefreshCatalog': '刷新目录',
+        'settings.capabilityFactoryCatalogUpdated': `目录已更新，共 ${String(options?.count ?? 0)} 个能力。`,
         'settings.capabilityFactoryUpdate': '更新',
         'settings.capabilityFactoryRollback': '回退',
         'settings.capabilityFactoryReplaceModified': '备份并覆盖本地修改',
@@ -111,6 +115,7 @@ describe('CapabilityFactorySettings catalog persistence', () => {
     mocks.readSkillPackage.mockReset();
     mocks.setSavedUrl.mockReset().mockResolvedValue(undefined);
     mocks.showError.mockReset();
+    mocks.showSuccess.mockReset();
     mocks.confirmDelete.mockReset();
   });
 
@@ -125,10 +130,13 @@ describe('CapabilityFactorySettings catalog persistence', () => {
     mocks.getCoreCatalog.mockResolvedValue({ items: [], installations: [] });
 
     const firstPage = render(<CapabilityFactorySettings />);
-    fireEvent.click(screen.getByRole('button', { name: '连接状态' }));
     fireEvent.click(screen.getByRole('button', { name: '获取目录' }));
-    fireEvent.click(screen.getByRole('button', { name: '发现能力' }));
     expect(await screen.findByText('Writer')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '连接状态' })).toBeNull();
+    expect(screen.getByLabelText('能力工厂地址')).toBeTruthy();
+    expect(mocks.showSuccess).toHaveBeenCalledWith('目录已更新，共 1 个能力。');
+    expect(screen.getByText('目录已更新，共 1 个能力。')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '刷新目录' })).toBeTruthy();
     mocks.getCoreCatalog.mockResolvedValue(catalog);
     firstPage.unmount();
 
@@ -142,7 +150,6 @@ describe('CapabilityFactorySettings catalog persistence', () => {
     mocks.syncFactory.mockRejectedValue(new Error('network unavailable'));
 
     const firstPage = render(<CapabilityFactorySettings />);
-    fireEvent.click(screen.getByRole('button', { name: '连接状态' }));
     fireEvent.click(screen.getByRole('button', { name: '获取目录' }));
     await waitFor(() => expect(mocks.showError).toHaveBeenCalledWith('network unavailable'));
     firstPage.unmount();
@@ -273,9 +280,7 @@ describe('CapabilityFactorySettings catalog persistence', () => {
     });
 
     render(<CapabilityFactorySettings />);
-    fireEvent.click(screen.getByRole('button', { name: '连接状态' }));
     fireEvent.click(screen.getByRole('button', { name: '获取目录' }));
-    fireEvent.click(screen.getByRole('button', { name: '发现能力' }));
     await screen.findByText('Writer');
     fireEvent.click(screen.getByRole('button', { name: '查看详情' }));
 

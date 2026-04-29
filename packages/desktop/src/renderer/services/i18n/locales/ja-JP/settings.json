@@ -1422,5 +1422,8 @@
   "capabilityFactoryConnection": "接続状態",
   "capabilityFactoryUpdate": "更新",
   "capabilityFactoryRollback": "ロールバック",
-  "capabilityFactoryReplaceModified": "バックアップしてローカルの変更を置換"
+  "capabilityFactoryReplaceModified": "バックアップしてローカルの変更を置換",
+  "capabilityFactoryFetchCatalog": "カタログを取得",
+  "capabilityFactoryRefreshCatalog": "カタログを更新",
+  "capabilityFactoryCatalogUpdated": "カタログを更新しました。能力は{{count}}件です。"
 }

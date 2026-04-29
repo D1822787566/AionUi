@@ -1422,5 +1422,8 @@
   "capabilityFactoryConnection": "連線狀態",
   "capabilityFactoryUpdate": "更新",
   "capabilityFactoryRollback": "還原",
-  "capabilityFactoryReplaceModified": "備份並覆蓋本機修改"
+  "capabilityFactoryReplaceModified": "備份並覆蓋本機修改",
+  "capabilityFactoryFetchCatalog": "取得目錄",
+  "capabilityFactoryRefreshCatalog": "重新整理目錄",
+  "capabilityFactoryCatalogUpdated": "目錄已更新，共 {{count}} 個能力。"
 }

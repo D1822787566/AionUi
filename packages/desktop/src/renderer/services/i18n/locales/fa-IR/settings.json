@@ -1420,5 +1420,8 @@
   "capabilityFactoryConnection": "وضعیت اتصال",
   "capabilityFactoryUpdate": "به‌روزرسانی",
   "capabilityFactoryRollback": "بازگردانی",
-  "capabilityFactoryReplaceModified": "پشتیبان‌گیری و جایگزینی تغییرات محلی"
+  "capabilityFactoryReplaceModified": "پشتیبان‌گیری و جایگزینی تغییرات محلی",
+  "capabilityFactoryFetchCatalog": "دریافت فهرست",
+  "capabilityFactoryRefreshCatalog": "بازخوانی فهرست",
+  "capabilityFactoryCatalogUpdated": "فهرست به‌روزرسانی شد: {{count}} قابلیت."
 }

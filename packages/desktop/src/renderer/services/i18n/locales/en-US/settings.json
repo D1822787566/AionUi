@@ -1420,5 +1420,8 @@
   "capabilityFactoryConnection": "Connection status",
   "capabilityFactoryUpdate": "Update",
   "capabilityFactoryRollback": "Roll back",
-  "capabilityFactoryReplaceModified": "Back up and replace local changes"
+  "capabilityFactoryReplaceModified": "Back up and replace local changes",
+  "capabilityFactoryFetchCatalog": "Get catalog",
+  "capabilityFactoryRefreshCatalog": "Refresh catalog",
+  "capabilityFactoryCatalogUpdated": "Catalog updated: {{count}} capabilities."
 }

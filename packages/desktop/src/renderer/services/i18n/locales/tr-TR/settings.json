@@ -1420,5 +1420,8 @@
   "capabilityFactoryConnection": "Bağlantı durumu",
   "capabilityFactoryUpdate": "Güncelle",
   "capabilityFactoryRollback": "Geri al",
-  "capabilityFactoryReplaceModified": "Yerel değişiklikleri yedekle ve değiştir"
+  "capabilityFactoryReplaceModified": "Yerel değişiklikleri yedekle ve değiştir",
+  "capabilityFactoryFetchCatalog": "Kataloğu getir",
+  "capabilityFactoryRefreshCatalog": "Kataloğu yenile",
+  "capabilityFactoryCatalogUpdated": "Katalog güncellendi: {{count}} yetenek."
 }

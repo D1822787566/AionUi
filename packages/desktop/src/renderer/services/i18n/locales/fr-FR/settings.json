@@ -1420,5 +1420,8 @@
   "capabilityFactoryConnection": "État de la connexion",
   "capabilityFactoryUpdate": "Mettre à jour",
   "capabilityFactoryRollback": "Annuler",
-  "capabilityFactoryReplaceModified": "Sauvegarder et remplacer les modifications locales"
+  "capabilityFactoryReplaceModified": "Sauvegarder et remplacer les modifications locales",
+  "capabilityFactoryFetchCatalog": "Récupérer le catalogue",
+  "capabilityFactoryRefreshCatalog": "Actualiser le catalogue",
+  "capabilityFactoryCatalogUpdated": "Catalogue mis à jour : {{count}} capacités."
 }

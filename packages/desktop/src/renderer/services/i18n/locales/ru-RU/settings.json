@@ -1434,5 +1434,8 @@
   "capabilityFactoryConnection": "Состояние подключения",
   "capabilityFactoryUpdate": "Обновить",
   "capabilityFactoryRollback": "Откатить",
-  "capabilityFactoryReplaceModified": "Создать резервную копию и заменить локальные изменения"
+  "capabilityFactoryReplaceModified": "Создать резервную копию и заменить локальные изменения",
+  "capabilityFactoryFetchCatalog": "Получить каталог",
+  "capabilityFactoryRefreshCatalog": "Обновить каталог",
+  "capabilityFactoryCatalogUpdated": "Каталог обновлён: {{count}} возможностей."
 }

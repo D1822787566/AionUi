@@ -1422,5 +1422,8 @@
   "capabilityFactoryConnection": "연결 상태",
   "capabilityFactoryUpdate": "업데이트",
   "capabilityFactoryRollback": "되돌리기",
-  "capabilityFactoryReplaceModified": "백업 후 로컬 변경 사항 교체"
+  "capabilityFactoryReplaceModified": "백업 후 로컬 변경 사항 교체",
+  "capabilityFactoryFetchCatalog": "카탈로그 가져오기",
+  "capabilityFactoryRefreshCatalog": "카탈로그 새로고침",
+  "capabilityFactoryCatalogUpdated": "카탈로그가 업데이트되었습니다. 총 {{count}}개 기능이 있습니다."
 }

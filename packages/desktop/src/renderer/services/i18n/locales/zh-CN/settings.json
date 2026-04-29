@@ -1421,5 +1421,8 @@
   "capabilityFactoryConnection": "连接状态",
   "capabilityFactoryUpdate": "更新",
   "capabilityFactoryRollback": "回退",
-  "capabilityFactoryReplaceModified": "备份并覆盖本地修改"
+  "capabilityFactoryReplaceModified": "备份并覆盖本地修改",
+  "capabilityFactoryFetchCatalog": "获取目录",
+  "capabilityFactoryRefreshCatalog": "刷新目录",
+  "capabilityFactoryCatalogUpdated": "目录已更新，共 {{count}} 个能力。"
 }

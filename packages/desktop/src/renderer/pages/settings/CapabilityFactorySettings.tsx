@@ -88,7 +88,7 @@ const CapabilityFactorySettings: React.FC = () => {
   const [selectedPath, setSelectedPath] = useState('SKILL.md');
   const [selectedContent, setSelectedContent] = useState<string>();
   const [detailLoading, setDetailLoading] = useState(false);
-  const [activeView, setActiveView] = useState<'discover' | 'mine' | 'connection'>('discover');
+  const [activeView, setActiveView] = useState<'discover' | 'mine'>('discover');
   const [factoryStatus, setFactoryStatus] = useState<CapabilityFactoryStatus>();
   const pageSize = 12;
 
@@ -125,9 +125,11 @@ const CapabilityFactorySettings: React.FC = () => {
     setLoading(true);
     try {
       await setSavedUrl(endpoint);
-      applyCatalog(await fs.syncCapabilityFactory.invoke());
+      const catalog = await fs.syncCapabilityFactory.invoke();
+      applyCatalog(catalog);
       setFactoryStatus(await fs.getCapabilityFactoryStatus.invoke());
       setPage(1);
+      Message.success(t('settings.capabilityFactoryCatalogUpdated', { count: catalog.items.length }));
     } catch (error) {
       Message.error(errorMessage(error));
     } finally {
@@ -307,41 +309,7 @@ const CapabilityFactorySettings: React.FC = () => {
           <Button type={activeView === 'mine' ? 'primary' : 'secondary'} onClick={() => setActiveView('mine')}>
             {t('settings.capabilityFactoryMine')}
           </Button>
-          <Button
-            type={activeView === 'connection' ? 'primary' : 'secondary'}
-            onClick={() => setActiveView('connection')}
-          >
-            {t('settings.capabilityFactoryConnection')}
-          </Button>
-          <span className='ml-auto text-12px text-t-tertiary'>
-            {factoryStatus?.catalogVersion ?? ''} {factoryStatus?.lastSuccessfulSyncAt ?? ''}
-          </span>
         </div>
-        {activeView === 'connection' ? (
-          <div className='rounded-12px border border-border-2 bg-2 p-16px flex flex-col gap-10px'>
-            <label className='text-13px font-500 text-t-primary' htmlFor='capability-factory-url'>
-              能力工厂地址
-            </label>
-            <div className='flex gap-8px'>
-              <Input
-                id='capability-factory-url'
-                value={platformUrl}
-                placeholder='http://capability-platform.intra:8787'
-                onChange={setPlatformUrl}
-                onPressEnter={() => void loadCatalog()}
-              />
-              <Button type='primary' loading={loading} onClick={() => void loadCatalog()}>
-                获取目录
-              </Button>
-              <Button loading={loading} onClick={() => void testConnection()}>
-                测试连接
-              </Button>
-            </div>
-            <span className='text-12px text-t-tertiary'>
-              地址仅保存到当前 AionUi 用户偏好；内容由 AionCore 从内网拉取。
-            </span>
-          </div>
-        ) : null}
         {activeView === 'mine' ? (
           <div className='grid grid-cols-1 gap-12px md:grid-cols-2'>
             {Array.from(installations.values()).map((installation) => {
@@ -425,6 +393,40 @@ const CapabilityFactorySettings: React.FC = () => {
         ) : null}
         {activeView === 'discover' ? (
           <>
+            <div className='rounded-12px border border-border-2 bg-2 p-16px flex flex-col gap-10px'>
+              <div className='flex flex-wrap items-center justify-between gap-8px'>
+                <label className='text-13px font-500 text-t-primary' htmlFor='capability-factory-url'>
+                  能力工厂地址
+                </label>
+                {factoryStatus?.lastSuccessfulSyncAt || items.length > 0 ? (
+                  <span className='text-12px text-success'>
+                    {t('settings.capabilityFactoryCatalogUpdated', { count: items.length })}
+                  </span>
+                ) : null}
+              </div>
+              <div className='flex flex-col gap-8px md:flex-row'>
+                <Input
+                  id='capability-factory-url'
+                  value={platformUrl}
+                  placeholder='http://capability-platform.intra:8787'
+                  onChange={setPlatformUrl}
+                  onPressEnter={() => void loadCatalog()}
+                />
+                <Button type='primary' loading={loading} onClick={() => void loadCatalog()}>
+                  {t(
+                    factoryStatus?.lastSuccessfulSyncAt || items.length > 0
+                      ? 'settings.capabilityFactoryRefreshCatalog'
+                      : 'settings.capabilityFactoryFetchCatalog'
+                  )}
+                </Button>
+                <Button loading={loading} onClick={() => void testConnection()}>
+                  测试连接
+                </Button>
+              </div>
+              <span className='text-12px text-t-tertiary'>
+                地址仅保存到当前 AionUi 用户偏好；内容由 AionCore 从内网拉取。
+              </span>
+            </div>
             <div className='flex flex-wrap items-center gap-8px'>
               <Input className='max-w-360px' value={query} placeholder='搜索名称、ID、描述或版本' onChange={setQuery} />
               {(['all', 'skill', 'mcp'] as const).map((kind) => (

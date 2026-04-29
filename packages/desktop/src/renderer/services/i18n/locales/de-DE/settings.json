@@ -1420,5 +1420,8 @@
   "capabilityFactoryConnection": "Verbindungsstatus",
   "capabilityFactoryUpdate": "Aktualisieren",
   "capabilityFactoryRollback": "Zurücksetzen",
-  "capabilityFactoryReplaceModified": "Lokale Änderungen sichern und ersetzen"
+  "capabilityFactoryReplaceModified": "Lokale Änderungen sichern und ersetzen",
+  "capabilityFactoryFetchCatalog": "Katalog abrufen",
+  "capabilityFactoryRefreshCatalog": "Katalog aktualisieren",
+  "capabilityFactoryCatalogUpdated": "Katalog aktualisiert: {{count}} Funktionen."
 }
