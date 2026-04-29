@@ -1414,5 +1414,11 @@
   "crossSessionMessageDesc": "Erlaubt Agenten, Nachrichten an Ihre anderen Unterhaltungen zu senden. Beim Ausschalten wird auch die @@-Erwähnung im Eingabefeld deaktiviert.",
   "crossSessionMessageDisabledBanner": "Nachrichten zwischen Unterhaltungen sind aus, die @@-Erwähnung ist nicht verfügbar.",
   "crossSessionMessageResume": "Wieder einschalten",
-  "crossSessionMessageUpdateFailed": "Einstellung konnte nicht aktualisiert werden"
+  "crossSessionMessageUpdateFailed": "Einstellung konnte nicht aktualisiert werden",
+  "capabilityFactoryDiscover": "Funktionen entdecken",
+  "capabilityFactoryMine": "Meine Funktionen",
+  "capabilityFactoryConnection": "Verbindungsstatus",
+  "capabilityFactoryUpdate": "Aktualisieren",
+  "capabilityFactoryRollback": "Zurücksetzen",
+  "capabilityFactoryReplaceModified": "Lokale Änderungen sichern und ersetzen"
 }

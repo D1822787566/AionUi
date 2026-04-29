@@ -1414,5 +1414,11 @@
   "crossSessionMessageDesc": "Let agents send messages to your other conversations. Turning this off also disables the @@ conversation mention in the input box.",
   "crossSessionMessageDisabledBanner": "Cross-conversation messages are off, so the @@ conversation mention is unavailable.",
   "crossSessionMessageResume": "Turn back on",
-  "crossSessionMessageUpdateFailed": "Failed to update the cross-conversation message setting"
+  "crossSessionMessageUpdateFailed": "Failed to update the cross-conversation message setting",
+  "capabilityFactoryDiscover": "Discover capabilities",
+  "capabilityFactoryMine": "My capabilities",
+  "capabilityFactoryConnection": "Connection status",
+  "capabilityFactoryUpdate": "Update",
+  "capabilityFactoryRollback": "Roll back",
+  "capabilityFactoryReplaceModified": "Back up and replace local changes"
 }
