@@ -617,10 +617,12 @@ const SendBox: React.FC<{
         kind: 'builtin',
         source: 'builtin',
       });
-      // The `/export` slash command is intentionally not registered (kanban #14)
-      // so it never appears in the command list and cannot open the export flow.
-      // The `name === 'export'` branch below and the conversationExport hook are
-      // kept intact for a future per-platform re-enable.
+      commands.push({
+        name: 'export',
+        description: t('messages.export.commandDescription'),
+        kind: 'builtin',
+        source: 'builtin',
+      });
     }
     return commands;
   }, [conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
@@ -885,8 +887,20 @@ const SendBox: React.FC<{
             conversationExport.handleKeyDown(event);
           }}
         />
-        <div className='text-12px text-t-secondary break-all'>
-          {t('messages.export.pathLabel')}: {conversationExport.pathPreview}
+        <div className='flex items-start gap-8px'>
+          <div className='flex-1 text-12px text-t-secondary break-all'>
+            {t('messages.export.pathLabel')}: {conversationExport.pathPreview}
+          </div>
+          <Button
+            size='mini'
+            type='text'
+            disabled={conversationExport.loading}
+            onClick={() => {
+              void conversationExport.selectDirectory();
+            }}
+          >
+            {t('common.browse')}
+          </Button>
         </div>
         <div className='flex items-center justify-end gap-8px'>
           <Button

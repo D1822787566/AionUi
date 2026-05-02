@@ -47,6 +47,7 @@ type UseConversationExportResult = {
   isOpen: boolean;
   pathPreview: string;
   openExportFlow: () => Promise<void>;
+  selectDirectory: () => Promise<void>;
   closeExportFlow: () => void;
   showMenu: () => void;
   setFilename: (value: string) => void;
@@ -61,9 +62,9 @@ export function useConversationExport(options: UseConversationExportOptions): Us
   const [step, setStep] = useState<ExportFlowStep>('closed');
   const [activeIndex, setActiveIndex] = useState(0);
   const [filename, setFilename] = useState('');
+  const [baseDirectory, setBaseDirectory] = useState('');
   const [loading, setLoading] = useState(false);
   const conversationRef = useRef<TChatConversation | null>(null);
-  const baseDirectoryRef = useRef('');
   const messagesRef = useRef<TMessage[] | null>(null);
   const transcriptRef = useRef<string | null>(null);
   const transcriptLabels = useMemo<ExportTranscriptLabels>(
@@ -150,7 +151,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
         }
       }
 
-      baseDirectoryRef.current = resolveExportBaseDirectory(workspace, desktopPath);
+      setBaseDirectory(resolveExportBaseDirectory(workspace, desktopPath));
       const messages = await loadAllConversationMessagesPaged(conversation_id);
       messagesRef.current = messages;
       setFilename(buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messages)));
@@ -161,6 +162,21 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       messageApi.error?.(t('messages.export.prepareFailed'));
     }
   }, [conversation_id, loadConversation, messageApi, t, workspace]);
+
+  const selectDirectory = useCallback(async () => {
+    try {
+      const folders = await ipcBridge.dialog.showOpen.invoke({
+        properties: ['openDirectory', 'createDirectory'],
+        defaultPath: baseDirectory || undefined,
+      });
+      if (folders?.[0]) {
+        setBaseDirectory(folders[0]);
+      }
+    } catch (error) {
+      console.error('[useConversationExport] Failed to select export directory:', error);
+      messageApi.error?.(t('messages.export.saveFailed'));
+    }
+  }, [baseDirectory, messageApi, t]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -193,11 +209,11 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       }
 
       const normalizedFileName = normalizeExportFileName(filename);
-      const targetPath = joinFilePath(baseDirectoryRef.current, normalizedFileName);
+      const targetPath = joinFilePath(baseDirectory, normalizedFileName);
       const success = await ipcBridge.fs.writeFile.invoke({
         path: targetPath,
         data: transcript,
-        workspace: baseDirectoryRef.current,
+        workspace: baseDirectory,
       });
 
       if (!success) {
@@ -237,7 +253,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
     } finally {
       setLoading(false);
     }
-  }, [closeExportFlow, filename, loadTranscript, messageApi, t]);
+  }, [baseDirectory, closeExportFlow, filename, loadTranscript, messageApi, t]);
 
   const onSelectMenuItem = useCallback(
     (key: string) => {
@@ -259,12 +275,12 @@ export function useConversationExport(options: UseConversationExportOptions): Us
     if (loading) {
       return;
     }
-    if (!baseDirectoryRef.current) {
+    if (!baseDirectory) {
       messageApi.error?.(t('messages.export.unavailable'));
       return;
     }
     await handleSave();
-  }, [handleSave, loading, messageApi, t]);
+  }, [baseDirectory, handleSave, loading, messageApi, t]);
 
   const menuItems = useMemo<SlashCommandMenuItem[]>(
     () => [
@@ -338,10 +354,11 @@ export function useConversationExport(options: UseConversationExportOptions): Us
     loading,
     menuItems,
     isOpen: step !== 'closed',
-    pathPreview: baseDirectoryRef.current
-      ? joinFilePath(baseDirectoryRef.current, normalizeExportFileName(filename))
+    pathPreview: baseDirectory
+      ? joinFilePath(baseDirectory, normalizeExportFileName(filename))
       : normalizeExportFileName(filename),
     openExportFlow,
+    selectDirectory,
     closeExportFlow,
     showMenu,
     setFilename,
