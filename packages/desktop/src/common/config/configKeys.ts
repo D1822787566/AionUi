@@ -31,6 +31,8 @@ export type ConfigKeyMap = {
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;
   'skillsMarket.enabled': boolean | undefined;
+  /** Internal endpoint of the project-managed Skill/MCP capability platform. */
+  'capabilityFactory.url': string | undefined;
   'pet.enabled': boolean | undefined;
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;

@@ -65,6 +65,12 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       icon: <Toolkit theme='outline' size='16' />,
       path: 'tools',
     },
+    factory: {
+      id: 'factory',
+      label: '能力工厂',
+      icon: <Toolkit theme='outline' size='16' />,
+      path: 'factory',
+    },
     appearance: {
       id: 'appearance',
       label: t('settings.appearancePanel'),

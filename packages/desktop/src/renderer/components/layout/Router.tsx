@@ -11,6 +11,7 @@ const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSet
 const AgentRepairPage = React.lazy(() => import('@renderer/pages/settings/AgentSettings/AgentRepairPage'));
 const AssistantSettings = React.lazy(() => import('@renderer/pages/settings/AssistantSettings'));
 const SkillsSettings = React.lazy(() => import('@renderer/pages/settings/SkillsSettings/SkillsHubSettings'));
+const CapabilityFactorySettings = React.lazy(() => import('@renderer/pages/settings/CapabilityFactorySettings'));
 const SkillDetailPage = React.lazy(() => import('@renderer/pages/settings/SkillsSettings/SkillDetailPage'));
 const ToolsSettings = React.lazy(() => import('@renderer/pages/settings/ToolsSettings'));
 const AppearanceSettings = React.lazy(() => import('@renderer/pages/settings/AppearanceSettings'));
@@ -91,6 +92,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/skills/import-history' element={withRouteFallback(SkillsSettings)} />
           <Route path='/settings/skills/detail/:skillName' element={withRouteFallback(SkillDetailPage)} />
           <Route path='/settings/tools' element={withRouteFallback(ToolsSettings)} />
+          <Route path='/settings/factory' element={withRouteFallback(CapabilityFactorySettings)} />
           {/* Legacy routes — the previous combined "Capabilities" page is now two pages. */}
           <Route path='/settings/capabilities' element={<CapabilitiesRedirect />} />
           <Route

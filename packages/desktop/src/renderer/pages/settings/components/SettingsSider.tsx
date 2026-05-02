@@ -30,6 +30,7 @@ export const BUILTIN_TAB_IDS = [
   'model',
   'skills',
   'tools',
+  'factory',
   'appearance',
   'webui',
   'pet',
@@ -104,6 +105,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <Toolkit />,
         path: 'tools',
       },
+      factory: { id: 'factory', label: '能力工厂', icon: <Toolkit />, path: 'factory' },
       appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
       webui: {
         id: 'webui',

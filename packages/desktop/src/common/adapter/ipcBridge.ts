@@ -940,6 +940,30 @@ export const fs = {
     },
     { skill_path: string }
   >('/api/skills/import'),
+  getCapabilityPlatformCatalog: httpPost<
+    {
+      items: Array<{
+        id: string;
+        kind: string;
+        name: string;
+        description: string;
+        version: string;
+        fileCount?: number;
+        totalBytes?: number;
+        exampleCount?: number;
+        config?: { transport: string; url: string };
+      }>;
+    },
+    { platform_url: string }
+  >('/api/skills/capability-platform/catalog'),
+  getCapabilityPlatformHealth: httpPost<
+    { status: string; version: string; capabilityCount: number },
+    { platform_url: string }
+  >('/api/skills/capability-platform/health'),
+  importCapabilityPlatformSkill: httpPost<
+    { skill_name: string; skill_names?: string[] },
+    { platform_url: string; skill_id: string }
+  >('/api/skills/capability-platform/import'),
   scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folder_path: string }>(
     '/api/skills/scan'
   ),
