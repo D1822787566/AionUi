@@ -9,6 +9,8 @@ const {
   getModulesToRebuild,
 } = require('./rebuildNativeModules');
 const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/src/verify-bundled-aioncore-resources');
+const { verifyOfficecli } = require('./prepare-officecli');
+const officecliManifest = require('../resources/officecli/manifest.json');
 
 /**
  * afterPack hook for electron-builder
@@ -23,6 +25,15 @@ function resolveResourcesDir(electronPlatformName, appOutDir, packager) {
 }
 
 function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) {
+  if (electronPlatformName === 'win32' && targetArch === 'x64') {
+    const officecliDir = path.join(resourcesDir, 'bundled-officecli', 'win32-x64');
+    const packagedManifest = JSON.parse(fs.readFileSync(path.join(officecliDir, 'manifest.json'), 'utf8'));
+    if (JSON.stringify(packagedManifest) !== JSON.stringify(officecliManifest)) {
+      throw new Error('Packaged OfficeCLI manifest does not match the pinned release.');
+    }
+    fs.accessSync(path.join(officecliDir, 'LICENSE.officecli.txt'));
+    verifyOfficecli(path.join(officecliDir, 'officecli.exe'));
+  }
   const result = verifyBundledAioncoreResources({
     resourcesDir,
     electronPlatformName,

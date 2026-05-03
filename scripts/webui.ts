@@ -26,6 +26,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { startWebHost } from '@aionui/web-host';
 import { openBrowserUrl, shouldAutoOpenBrowser } from '../packages/web-cli/src/browser.js';
+import { configureBundledOfficecliEnvironment } from '../packages/desktop/src/process/backend/officecliEnvironment';
 
 // Aligned with packages/desktop/src/common/config/constants.ts WEBUI_DEFAULT_PORT.
 const DEFAULT_PORT = (() => {
@@ -201,6 +202,7 @@ async function fetchAdminUsername(backendPort: number): Promise<string> {
 
 async function main(): Promise<void> {
   augmentPathWithNvm();
+  configureBundledOfficecliEnvironment(path.join(repoRoot, 'resources'));
   runPackageIfNeeded();
   const port = resolvePort();
   const allowRemote = resolveAllowRemote();

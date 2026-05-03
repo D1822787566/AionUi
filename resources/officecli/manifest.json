@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "product": "OfficeCLI",
+  "version": "1.0.159",
+  "platform": "win32",
+  "arch": "x64",
+  "runtimeKey": "win32-x64",
+  "sha256": "572C0A4DA35333CF866FA5A2FB8259A4A2A8C9922BE031D6B7A86936282EF94E",
+  "license": "Apache-2.0",
+  "source": "https://github.com/iOfficeAI/OfficeCLI/releases/tag/v1.0.159",
+  "downloadUrl": "https://github.com/iOfficeAI/OfficeCLI/releases/download/v1.0.159/officecli-win-x64.exe",
+  "files": ["officecli.exe", "LICENSE.officecli.txt"]
+}

@@ -204,7 +204,10 @@ worktrees/
 docs/superpowers/
 resources/bundled-bun
 resources/bundled-aioncore
+resources/officecli-source
+resources/bundled-officecli
 resources/hub
+.agents/
 /resources/windows/support/_sentry-dsn.generated.nsh
 
 # Server build output

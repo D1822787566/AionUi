@@ -39,6 +39,7 @@ import { onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
+import { configureBundledOfficecliEnvironment } from './process/backend/officecliEnvironment';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
 import { registerWindowsAppUserModelId } from './process/startup/windowsAppUserModelId';
@@ -145,6 +146,13 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
   hydrateWindowsProcessPath();
   registerWindowsAppUserModelId({ app });
 }
+
+// Packaged Windows builds carry a fixed OfficeCLI binary for offline previews.
+// The environment is inherited by AionCore and all of its child processes.
+configureBundledOfficecliEnvironment(
+  app.isPackaged ? process.resourcesPath : path.join(app.getAppPath(), 'resources'),
+  { required: app.isPackaged }
+);
 
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {

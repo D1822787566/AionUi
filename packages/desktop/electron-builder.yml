@@ -113,6 +113,10 @@ extraResources:
   - from: resources/hub
     to: hub
 win:
+  extraResources:
+    # Only Windows x64 carries an OfficeCLI bundle in this iteration.
+    - from: resources/bundled-officecli/win32-${arch}
+      to: bundled-officecli/win32-${arch}
   target:
     - nsis
     #    - msi

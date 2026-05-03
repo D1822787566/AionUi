@@ -763,11 +763,17 @@ try {
     return;
   }
 
-  // 5. Prepare aioncore binary (for packaged runtime usage)
+  // 5. Prepare bundled OfficeCLI and aioncore binaries (for packaged runtime usage)
+  const { prepareOfficecli } = require('./prepare-officecli.js');
   const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
   const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
   const projectRoot = path.resolve(__dirname, '..');
   writeGeneratedSentryDsnInclude(projectRoot);
+  prepareOfficecli({
+    projectRoot,
+    platform: process.platform,
+    arch: targetArch,
+  });
   prepareAioncore({
     projectRoot,
     platform: process.platform,
