@@ -1430,5 +1430,10 @@
   "capabilityFactoryClearFilters": "Filtreleri temizle",
   "capabilityFactoryCatalogEmpty": "Katalogda yayımlanmış yetenek yok. Yenileyip tekrar deneyin.",
   "capabilityFactoryUpdateAvailable": "Yeni sürüm v{{version}}",
-  "capabilityFactoryUpdatesFilter": "Güncelleme var"
+  "capabilityFactoryUpdatesFilter": "Güncelleme var",
+  "updateSourceUrl": "Güncelleme kaynağı URL'si",
+  "updateSourceUrlDesc": "AionUi güncellemelerini kontrol etmek ve indirmek için kullanılır. Boş bırakırsanız varsayılan adres kullanılır ({{defaultUrl}}).",
+  "updateSourceUrlPlaceholder": "http://update-center:8080/releases/aionui/stable",
+  "updateSourceUrlInvalid": "Geçerli bir HTTP veya HTTPS güncelleme kaynağı URL'si girin.",
+  "updateSourceUrlSaveFailed": "Güncelleme kaynağı URL'si kaydedilemedi"
 }

@@ -1445,5 +1445,10 @@
   "capabilityFactoryClearFilters": "Очистити фільтри",
   "capabilityFactoryCatalogEmpty": "У каталозі немає опублікованих можливостей. Оновіть каталог і спробуйте ще раз.",
   "capabilityFactoryUpdateAvailable": "Нова версія v{{version}}",
-  "capabilityFactoryUpdatesFilter": "Доступні оновлення"
+  "capabilityFactoryUpdatesFilter": "Доступні оновлення",
+  "updateSourceUrl": "URL джерела оновлень",
+  "updateSourceUrlDesc": "Використовується для перевірки та завантаження оновлень AionUi. Залиште поле порожнім, щоб використати адресу за замовчуванням ({{defaultUrl}}).",
+  "updateSourceUrlPlaceholder": "http://update-center:8080/releases/aionui/stable",
+  "updateSourceUrlInvalid": "Введіть дійсну HTTP або HTTPS-адресу джерела оновлень.",
+  "updateSourceUrlSaveFailed": "Не вдалося зберегти URL джерела оновлень"
 }

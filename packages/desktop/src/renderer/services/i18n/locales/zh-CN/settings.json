@@ -1431,5 +1431,10 @@
   "capabilityFactoryClearFilters": "清除筛选",
   "capabilityFactoryCatalogEmpty": "目录中暂无已发布能力，请刷新目录后重试。",
   "capabilityFactoryUpdateAvailable": "有新版本 v{{version}}",
-  "capabilityFactoryUpdatesFilter": "有新版本"
+  "capabilityFactoryUpdatesFilter": "有新版本",
+  "updateSourceUrl": "更新源地址",
+  "updateSourceUrlDesc": "用于检查和下载 AionUi 更新。留空使用默认地址（{{defaultUrl}}）。",
+  "updateSourceUrlPlaceholder": "http://update-center:8080/releases/aionui/stable",
+  "updateSourceUrlInvalid": "请输入有效的 HTTP 或 HTTPS 更新源地址。",
+  "updateSourceUrlSaveFailed": "更新源地址保存失败"
 }

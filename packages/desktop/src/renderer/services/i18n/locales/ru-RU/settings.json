@@ -1444,5 +1444,10 @@
   "capabilityFactoryClearFilters": "Сбросить фильтры",
   "capabilityFactoryCatalogEmpty": "В каталоге нет опубликованных возможностей. Обновите каталог и повторите попытку.",
   "capabilityFactoryUpdateAvailable": "Новая версия v{{version}}",
-  "capabilityFactoryUpdatesFilter": "Доступны обновления"
+  "capabilityFactoryUpdatesFilter": "Доступны обновления",
+  "updateSourceUrl": "URL источника обновлений",
+  "updateSourceUrlDesc": "Используется для проверки и загрузки обновлений AionUi. Оставьте поле пустым, чтобы использовать адрес по умолчанию ({{defaultUrl}}).",
+  "updateSourceUrlPlaceholder": "http://update-center:8080/releases/aionui/stable",
+  "updateSourceUrlInvalid": "Введите допустимый URL источника обновлений HTTP или HTTPS.",
+  "updateSourceUrlSaveFailed": "Не удалось сохранить URL источника обновлений"
 }

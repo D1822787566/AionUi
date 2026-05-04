@@ -1432,5 +1432,10 @@
   "capabilityFactoryClearFilters": "필터 지우기",
   "capabilityFactoryCatalogEmpty": "카탈로그에 게시된 기능이 없습니다. 새로고침 후 다시 시도하세요.",
   "capabilityFactoryUpdateAvailable": "새 버전 v{{version}}",
-  "capabilityFactoryUpdatesFilter": "업데이트 있음"
+  "capabilityFactoryUpdatesFilter": "업데이트 있음",
+  "updateSourceUrl": "업데이트 소스 URL",
+  "updateSourceUrlDesc": "AionUi 업데이트 확인 및 다운로드에 사용됩니다. 비워 두면 기본값({{defaultUrl}})을 사용합니다.",
+  "updateSourceUrlPlaceholder": "http://update-center:8080/releases/aionui/stable",
+  "updateSourceUrlInvalid": "올바른 HTTP 또는 HTTPS 업데이트 소스 URL을 입력하세요.",
+  "updateSourceUrlSaveFailed": "업데이트 소스 URL을 저장하지 못했습니다"
 }

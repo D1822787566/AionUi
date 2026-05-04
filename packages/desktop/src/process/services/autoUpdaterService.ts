@@ -10,6 +10,7 @@ import type { UpdateInfoAndProvider } from 'electron-updater/out/AppUpdater';
 import type { DownloadedUpdateHelper } from 'electron-updater/out/DownloadedUpdateHelper';
 import { findFile } from 'electron-updater/out/providers/Provider';
 import { CancellationError, CancellationToken } from 'builder-util-runtime';
+import { buildCdnFeedOptions, getConfiguredUpdateBaseUrl } from './updateFeed';
 import type { AutoUpdateReadyResult } from '@/common/update/updateTypes';
 import { app, autoUpdater as nativeAutoUpdater } from 'electron';
 import log from 'electron-log';
@@ -24,7 +25,6 @@ import {
   recordAutoUpdateQuitAndInstall,
   recordAutoUpdateStatus,
 } from './autoUpdateDiagnostics';
-import { buildCdnFeedOptions } from './updateFeed';
 
 const FORCE_DEV_AUTO_UPDATE_ENV = 'AIONUI_FORCE_DEV_AUTO_UPDATE';
 const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
@@ -117,6 +117,7 @@ class AutoUpdaterService extends EventEmitter {
     timer: ReturnType<typeof setTimeout>;
   } | null = null;
   private _downloadedUpdateVersion: string | undefined;
+  private _configuredFeedUrl: string | undefined;
   /** Stores registered autoUpdater event handlers for cleanup and test access */
   private readonly _autoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
   private readonly _nativeAutoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
@@ -274,6 +275,7 @@ class AutoUpdaterService extends EventEmitter {
     this.clearNativeInstallReadyWait();
     this._nativeInstallReady = process.platform !== 'darwin';
     this._downloadedUpdateVersion = undefined;
+    this._configuredFeedUrl = undefined;
   }
 
   /**
@@ -292,6 +294,7 @@ class AutoUpdaterService extends EventEmitter {
     this.clearNativeInstallReadyWait();
     this._nativeInstallReady = process.platform !== 'darwin';
     this._downloadedUpdateVersion = undefined;
+    this._configuredFeedUrl = undefined;
     // Remove listeners from this EventEmitter instance
     this.removeAllListeners();
     // Remove each registered handler from autoUpdater to prevent
@@ -457,6 +460,14 @@ class AutoUpdaterService extends EventEmitter {
     });
   }
 
+  private async applyConfiguredFeedUrl(): Promise<void> {
+    const url = await getConfiguredUpdateBaseUrl();
+    if (url === this._configuredFeedUrl) return;
+    autoUpdater.setFeedURL({ ...buildCdnFeedOptions(), url });
+    this._configuredFeedUrl = url;
+    log.info('[auto-update] Update feed configured', { url });
+  }
+
   /**
    * In dev mode the running shell is the stock Electron bundle (com.github.Electron),
    * while the downloaded archive contains the packaged app (com.aionui.app). Squirrel.Mac
@@ -608,6 +619,8 @@ class AutoUpdaterService extends EventEmitter {
       if (!this._isInitialized) {
         throw new Error('AutoUpdaterService not initialized');
       }
+
+      await this.applyConfiguredFeedUrl();
 
       log.debug('[auto-update] checkForUpdates requested', {
         allowPrerelease: this._allowPrerelease,
@@ -906,6 +919,7 @@ class AutoUpdaterService extends EventEmitter {
     try {
       // Ensure clean state: prevent stale allowDowngrade=true from prior setAllowPrerelease(true) calls
       autoUpdater.allowDowngrade = false;
+      await this.applyConfiguredFeedUrl();
       await autoUpdater.checkForUpdatesAndNotify();
     } catch (error) {
       log.error('Auto-update check failed:', error);

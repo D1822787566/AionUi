@@ -25,6 +25,8 @@ import * as path from 'path';
 import semver from 'semver';
 import { autoUpdaterService } from '../services/autoUpdaterService';
 import { consumeInstallerLastFailure } from '../services/installerLastFailure';
+import { getConfiguredUpdateBaseUrl } from '../services/updateFeed';
+import { DEFAULT_UPDATE_BASE_URL } from '@/common/config/updateSettings';
 
 /** Lazily loads i18n to avoid pulling in initStorage chain at module load time */
 let _i18nCache: Promise<typeof import('../services/i18n')> | null = null;
@@ -64,7 +66,7 @@ const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
 const CDN_HOST = 'static.aionui.com';
-const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
+const CDN_BASE_URL = DEFAULT_UPDATE_BASE_URL;
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
   CDN_HOST,
   'github.com',
@@ -92,8 +94,8 @@ const normalizeTagToSemver = (tag: string): string | null => {
  * The CDN path follows the fixed convention `{base}/{version}/{original-filename}`,
  * matching electron-builder's artifactName output, so no name conversion is needed.
  */
-const rewriteAssetUrlToCDN = (assetName: string, version: string): string => {
-  return `${CDN_BASE_URL}/${version}/${assetName}`;
+const rewriteAssetUrlToCDN = (assetName: string, version: string, baseUrl = CDN_BASE_URL): string => {
+  return `${baseUrl}/${version}/${assetName}`;
 };
 
 type RuntimePlatformInfo = {
@@ -235,7 +237,11 @@ export const parseCdnManifest = (raw: string): CdnLatestManifest | null => {
  * reachable. fallbackUrl follows GitHub's fixed release-asset URL scheme, so
  * no API call is needed to construct it.
  */
-export const mapCdnManifestToRelease = (manifest: CdnLatestManifest, repo: string): UpdateReleaseInfo | null => {
+export const mapCdnManifestToRelease = (
+  manifest: CdnLatestManifest,
+  repo: string,
+  baseUrl = CDN_BASE_URL
+): UpdateReleaseInfo | null => {
   const version = semver.valid(manifest.version);
   if (!version) return null;
   const assets: GitHubReleaseAsset[] = [];
@@ -244,7 +250,7 @@ export const mapCdnManifestToRelease = (manifest: CdnLatestManifest, repo: strin
     if (!name || !isAllowedAssetName(name)) continue;
     assets.push({
       name,
-      url: rewriteAssetUrlToCDN(name, version),
+      url: rewriteAssetUrlToCDN(name, version, baseUrl),
       fallbackUrl: `https://github.com/${repo}/releases/download/v${version}/${name}`,
       size: file.size ?? 0,
     });
@@ -275,6 +281,12 @@ const assertAllowedUrl = async (rawUrl: string) => {
     throw new Error((await getI18n()).t('update.errors.invalidUrl'));
   }
 
+  const configured = new URL(await getConfiguredUpdateBaseUrl());
+  const configuredPath = configured.pathname.replace(/\/$/, '');
+  const isConfiguredSource =
+    parsed.origin === configured.origin &&
+    (parsed.pathname === configuredPath || parsed.pathname.startsWith(`${configuredPath}/`));
+  if (isConfiguredSource) return;
   if (parsed.protocol !== 'https:') {
     throw new Error((await getI18n()).t('update.errors.httpsOnly'));
   }
@@ -349,14 +361,16 @@ const fetchGitHubReleases = async (repo: string, timeoutMs = 30000): Promise<Git
 
 const CDN_MANIFEST_TIMEOUT_MS = 15000;
 const GITHUB_NOTES_TIMEOUT_MS = 10000;
+const UPDATE_CENTER_NOTES_TIMEOUT_MS = 5000;
 
 /**
  * Fetch and parse the authoritative CDN channel manifest for the current
  * platform/arch. Any failure here fails the manual check — the CDN is the
  * single source of truth for "is there an update".
  */
-const fetchCdnManifest = async (): Promise<CdnLatestManifest> => {
-  const url = `${CDN_BASE_URL}/${resolveCdnChannelFile()}`;
+const fetchCdnManifest = async (): Promise<{ manifest: CdnLatestManifest; baseUrl: string }> => {
+  const baseUrl = await getConfiguredUpdateBaseUrl();
+  const url = `${baseUrl}/${resolveCdnChannelFile()}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CDN_MANIFEST_TIMEOUT_MS);
 
@@ -378,7 +392,7 @@ const fetchCdnManifest = async (): Promise<CdnLatestManifest> => {
       version: manifest.version,
       files: manifest.files.length,
     });
-    return manifest;
+    return { manifest, baseUrl };
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new Error((await getI18n()).t('update.errors.cdnManifestTimeout'), { cause: err });
@@ -391,10 +405,65 @@ const fetchCdnManifest = async (): Promise<CdnLatestManifest> => {
 
 type ReleaseNotesEnrichment = { body?: string; htmlUrl?: string; name?: string; publishedAt?: string };
 
+type UpdateCenterCheckResponse = {
+  appVersion?: unknown;
+  releaseNotes?: unknown;
+  publishedAt?: unknown;
+};
+
 /**
- * Best-effort GitHub lookup for the release matching the CDN version. The
- * manual check must work without GitHub (the repo stays the changelog source
- * but may be unreachable), so every failure path resolves to an empty object.
+ * Read release notes from the internal update center when the configured feed
+ * is not the public CDN. The update center keeps the notes in SQLite and
+ * exposes them through its unauthenticated client check endpoint.
+ */
+const fetchUpdateCenterReleaseNotes = async (baseUrl: string, version: string): Promise<ReleaseNotesEnrichment> => {
+  if (baseUrl === DEFAULT_UPDATE_BASE_URL) return {};
+
+  let url: URL;
+  try {
+    url = new URL('/api/update/check', `${baseUrl}/`);
+  } catch {
+    return {};
+  }
+  url.searchParams.set('product', 'aionui');
+  url.searchParams.set('channel', 'stable');
+  url.searchParams.set('version', version);
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), UPDATE_CENTER_NOTES_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': DEFAULT_USER_AGENT },
+      signal: controller.signal,
+    });
+    if (!res.ok) return {};
+
+    const payload = (await res.json()) as unknown;
+    if (!payload || typeof payload !== 'object') return {};
+    const data = payload as UpdateCenterCheckResponse;
+    if (data.appVersion !== version || typeof data.releaseNotes !== 'string' || !data.releaseNotes.trim()) {
+      return {};
+    }
+
+    log.info('[manual-update] Update center release notes resolved:', {
+      version,
+      notesLength: data.releaseNotes.length,
+    });
+    return {
+      body: data.releaseNotes,
+      publishedAt: typeof data.publishedAt === 'string' ? data.publishedAt : undefined,
+    };
+  } catch {
+    return {};
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+/**
+ * Fallback GitHub lookup for the release matching the CDN version. The manual
+ * check must work without GitHub, so every failure path resolves to an empty
+ * object.
  */
 const fetchReleaseNotesEnrichment = async (repo: string, version: string): Promise<ReleaseNotesEnrichment> => {
   try {
@@ -691,16 +760,21 @@ export function initUpdateBridge(): void {
 
         // The CDN channel manifest is the authoritative source. It serves a single
         // stable channel, so `includePrerelease` no longer affects detection.
-        const manifest = await fetchCdnManifest();
-        const latest = mapCdnManifestToRelease(manifest, repo);
+        const { manifest, baseUrl } = await fetchCdnManifest();
+        const latest = mapCdnManifestToRelease(manifest, repo, baseUrl);
 
         const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
         if (!currentSemver || !latest) {
           return { success: true, data: { currentVersion, updateAvailable: false } };
         }
 
-        // GitHub only enriches the result with release notes; it never blocks.
-        const enrichment = await fetchReleaseNotesEnrichment(repo, latest.version);
+        // Prefer the internal update center for intranet deployments. GitHub
+        // remains a fallback for the public CDN and older servers.
+        const centerEnrichment = await fetchUpdateCenterReleaseNotes(baseUrl, latest.version);
+        const enrichment =
+          centerEnrichment.body !== undefined
+            ? centerEnrichment
+            : await fetchReleaseNotesEnrichment(repo, latest.version);
 
         return {
           success: true,

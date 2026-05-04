@@ -1430,5 +1430,10 @@
   "capabilityFactoryClearFilters": "Filter zurücksetzen",
   "capabilityFactoryCatalogEmpty": "Im Katalog sind keine veröffentlichten Funktionen verfügbar. Aktualisieren Sie ihn und versuchen Sie es erneut.",
   "capabilityFactoryUpdateAvailable": "Neue Version v{{version}}",
-  "capabilityFactoryUpdatesFilter": "Updates verfügbar"
+  "capabilityFactoryUpdatesFilter": "Updates verfügbar",
+  "updateSourceUrl": "URL der Updatequelle",
+  "updateSourceUrlDesc": "Wird zum Suchen und Herunterladen von AionUi-Updates verwendet. Leer lassen, um den Standard ({{defaultUrl}}) zu verwenden.",
+  "updateSourceUrlPlaceholder": "http://update-center:8080/releases/aionui/stable",
+  "updateSourceUrlInvalid": "Gib eine gültige HTTP- oder HTTPS-URL für die Updatequelle ein.",
+  "updateSourceUrlSaveFailed": "Die URL der Updatequelle konnte nicht gespeichert werden"
 }

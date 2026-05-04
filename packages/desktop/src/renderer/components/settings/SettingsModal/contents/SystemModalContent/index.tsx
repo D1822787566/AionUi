@@ -7,6 +7,11 @@
 import { ipcBridge } from '@/common';
 import type { IGpuStatus, IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
+import {
+  DEFAULT_UPDATE_BASE_URL,
+  UPDATE_BASE_URL_CONFIG_KEY,
+  normalizeUpdateBaseUrl,
+} from '@/common/config/updateSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
@@ -20,7 +25,7 @@ import {
 } from '@/renderer/utils/file/previewPayload';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
+import { Alert, Collapse, Form, Input, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -60,6 +65,8 @@ const SystemModalContent: React.FC = () => {
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
+  const [updateBaseUrl, setUpdateBaseUrl] = useState('');
+  const updateBaseUrlDraftRef = useRef('');
   /**
    * The committed limit — what is stored, and what the field falls back to.
    *
@@ -114,6 +121,9 @@ const SystemModalContent: React.FC = () => {
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
+    const savedUpdateBaseUrl = configService.get(UPDATE_BASE_URL_CONFIG_KEY) ?? '';
+    setUpdateBaseUrl(savedUpdateBaseUrl);
+    updateBaseUrlDraftRef.current = savedUpdateBaseUrl;
   }, [isDesktop]);
 
   useEffect(() => {
@@ -341,6 +351,41 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleUpdateBaseUrlChange = useCallback((value: string) => {
+    setUpdateBaseUrl(value);
+    updateBaseUrlDraftRef.current = value;
+  }, []);
+
+  const handleUpdateBaseUrlBlur = useCallback(() => {
+    const previous = updateBaseUrl;
+    const draft = updateBaseUrlDraftRef.current.trim();
+    if (!draft) {
+      setUpdateBaseUrl('');
+      void configService.remove(UPDATE_BASE_URL_CONFIG_KEY).catch(() => {
+        setUpdateBaseUrl(previous);
+        updateBaseUrlDraftRef.current = previous;
+        Message.error(t('settings.updateSourceUrlSaveFailed'));
+      });
+      return;
+    }
+
+    const normalized = normalizeUpdateBaseUrl(draft);
+    if (!normalized) {
+      setUpdateBaseUrl(previous);
+      updateBaseUrlDraftRef.current = previous;
+      Message.error(t('settings.updateSourceUrlInvalid'));
+      return;
+    }
+
+    setUpdateBaseUrl(normalized);
+    updateBaseUrlDraftRef.current = normalized;
+    void configService.set(UPDATE_BASE_URL_CONFIG_KEY, normalized).catch(() => {
+      setUpdateBaseUrl(previous);
+      updateBaseUrlDraftRef.current = previous;
+      Message.error(t('settings.updateSourceUrlSaveFailed'));
+    });
+  }, [t, updateBaseUrl]);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -357,6 +402,21 @@ const SystemModalContent: React.FC = () => {
 
   const preferenceItems = [
     { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
+    {
+      key: 'updateBaseUrl',
+      label: t('settings.updateSourceUrl'),
+      description: t('settings.updateSourceUrlDesc', { defaultUrl: DEFAULT_UPDATE_BASE_URL }),
+      component: (
+        <Input
+          value={updateBaseUrl}
+          onChange={handleUpdateBaseUrlChange}
+          onBlur={handleUpdateBaseUrlBlur}
+          placeholder={t('settings.updateSourceUrlPlaceholder')}
+          allowClear
+          style={{ width: 320 }}
+        />
+      ),
+    },
     {
       key: 'startOnBoot',
       label: t('settings.startOnBoot'),

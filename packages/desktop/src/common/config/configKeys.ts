@@ -2,6 +2,8 @@ import type { Theme } from '@/common/theme/types';
 
 export type ConfigKeyMap = {
   language: string;
+  /** Base URL used by the desktop updater; empty means the built-in default. */
+  'update.baseUrl': string | undefined;
   'ui.zoomFactor': number | undefined;
   'ui.fontSize.app': number | undefined;
   'ui.fontSize.chat': number | undefined;

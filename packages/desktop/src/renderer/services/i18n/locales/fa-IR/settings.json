@@ -1430,5 +1430,10 @@
   "capabilityFactoryClearFilters": "پاک کردن فیلترها",
   "capabilityFactoryCatalogEmpty": "قابلیت منتشرشده‌ای در فهرست موجود نیست. فهرست را بازخوانی و دوباره تلاش کنید.",
   "capabilityFactoryUpdateAvailable": "نسخه جدید v{{version}}",
-  "capabilityFactoryUpdatesFilter": "به‌روزرسانی موجود"
+  "capabilityFactoryUpdatesFilter": "به‌روزرسانی موجود",
+  "updateSourceUrl": "نشانی منبع به‌روزرسانی",
+  "updateSourceUrlDesc": "برای بررسی و دریافت به‌روزرسانی‌های AionUi استفاده می‌شود. برای استفاده از نشانی پیش‌فرض ({{defaultUrl}}) خالی بگذارید.",
+  "updateSourceUrlPlaceholder": "http://update-center:8080/releases/aionui/stable",
+  "updateSourceUrlInvalid": "یک نشانی معتبر HTTP یا HTTPS برای منبع به‌روزرسانی وارد کنید.",
+  "updateSourceUrlSaveFailed": "ذخیره نشانی منبع به‌روزرسانی انجام نشد"
 }

@@ -1432,5 +1432,10 @@
   "capabilityFactoryClearFilters": "フィルターをクリア",
   "capabilityFactoryCatalogEmpty": "カタログに公開済みの能力がありません。更新してもう一度お試しください。",
   "capabilityFactoryUpdateAvailable": "新しいバージョン v{{version}}",
-  "capabilityFactoryUpdatesFilter": "更新あり"
+  "capabilityFactoryUpdatesFilter": "更新あり",
+  "updateSourceUrl": "更新ソース URL",
+  "updateSourceUrlDesc": "AionUi の更新確認とダウンロードに使用します。空欄にすると既定値（{{defaultUrl}}）を使用します。",
+  "updateSourceUrlPlaceholder": "http://update-center:8080/releases/aionui/stable",
+  "updateSourceUrlInvalid": "有効な HTTP または HTTPS の更新ソース URL を入力してください。",
+  "updateSourceUrlSaveFailed": "更新ソース URL の保存に失敗しました"
 }

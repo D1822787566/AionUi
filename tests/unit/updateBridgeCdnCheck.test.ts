@@ -122,15 +122,20 @@ const getCheckHandler = async () => {
 
 type FetchScenario = {
   cdn?: () => Promise<Response> | Response;
+  updateCenter?: () => Promise<Response> | Response;
   github?: () => Promise<Response> | Response;
 };
 
 const stubFetch = (scenario: FetchScenario) => {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
-    if (url.startsWith('https://static.aionui.com/releases/latest')) {
+    if (/\/latest(?:-[^/?]+)?\.yml(?:\?|$)/.test(url)) {
       if (!scenario.cdn) throw new Error('unexpected CDN request');
       return scenario.cdn();
+    }
+    if (url.includes('/api/update/check')) {
+      if (!scenario.updateCenter) throw new Error('update center unreachable');
+      return scenario.updateCenter();
     }
     if (url.startsWith('https://api.github.com/')) {
       if (!scenario.github) throw new Error('github unreachable');
@@ -146,12 +151,16 @@ const ymlResponse = (body: string) => new Response(body, { status: 200 });
 const jsonResponse = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
 
 describe('update.check CDN-first', () => {
+  const originalUpdateBaseUrl = process.env.AIONUI_UPDATE_BASE_URL;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    if (originalUpdateBaseUrl === undefined) delete process.env.AIONUI_UPDATE_BASE_URL;
+    else process.env.AIONUI_UPDATE_BASE_URL = originalUpdateBaseUrl;
   });
 
   it('reports an update from the CDN manifest and attaches GitHub notes', async () => {
@@ -177,6 +186,28 @@ describe('update.check CDN-first', () => {
     expect(res.data?.latest?.body).toBeUndefined();
     expect(res.data?.latest?.htmlUrl).toBe('');
     expect(res.data?.latest?.assets.length).toBeGreaterThan(0);
+  });
+
+  it('uses release notes from the internal update center', async () => {
+    process.env.AIONUI_UPDATE_BASE_URL = 'http://update-center.test/releases/aionui/stable';
+    const fetchMock = stubFetch({
+      cdn: () => ymlResponse(CDN_YML),
+      updateCenter: () =>
+        jsonResponse({
+          updateAvailable: true,
+          appVersion: '2.1.45',
+          releaseNotes: '内网更新说明',
+          publishedAt: '2026-07-31T14:45:19.381Z',
+        }),
+    });
+
+    const handler = await getCheckHandler();
+    const res = await handler({});
+
+    expect(res.success).toBe(true);
+    expect(res.data?.latest?.body).toBe('内网更新说明');
+    expect(res.data?.latest?.publishedAt).toBe('2026-07-31T14:45:19.381Z');
+    expect(fetchMock.mock.calls.some(([input]) => String(input).startsWith('https://api.github.com/'))).toBe(false);
   });
 
   it('ignores GitHub releases that do not match the CDN version', async () => {

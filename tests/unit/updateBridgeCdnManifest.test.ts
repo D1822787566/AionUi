@@ -152,4 +152,16 @@ describe('mapCdnManifestToRelease', () => {
     );
     expect(release).toBeNull();
   });
+
+  it('rewrites manifest assets under a configured internal update source', () => {
+    const manifest = parseCdnManifest(SAMPLE_YML);
+    if (!manifest) throw new Error('manifest should parse');
+    const release = mapCdnManifestToRelease(
+      manifest,
+      'iOfficeAI/AionUi',
+      'http://update-center:8080/releases/aionui/stable'
+    );
+    const dmg = release?.assets.find((a) => a.name.endsWith('.dmg'));
+    expect(dmg?.url).toBe('http://update-center:8080/releases/aionui/stable/2.1.45/AionUi-2.1.45-mac-arm64.dmg');
+  });
 });
