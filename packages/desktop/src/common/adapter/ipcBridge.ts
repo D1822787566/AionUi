@@ -951,19 +951,262 @@ export const fs = {
         fileCount?: number;
         totalBytes?: number;
         exampleCount?: number;
+        revision?: number;
+        artifactSha256?: string;
+        publishedAt?: string;
+        updatedAt?: string;
+        releaseNotes?: string;
+        compatibility?: { aionui: string };
         config?: { transport: string; url: string };
       }>;
     },
     { platform_url: string }
   >('/api/skills/capability-platform/catalog'),
   getCapabilityPlatformHealth: httpPost<
-    { status: string; version: string; capabilityCount: number },
+    {
+      status: string;
+      version: string;
+      capabilityCount: number;
+      schemaVersion?: number;
+      catalogVersion?: string;
+      storage?: string;
+    },
     { platform_url: string }
   >('/api/skills/capability-platform/health'),
+  getCapabilityFactoryStatus: httpGet<{
+    url?: string;
+    syncEnabled: boolean;
+    syncIntervalMinutes: number;
+    lastAttemptedAt?: number;
+    lastSuccessfulSyncAt?: number;
+    catalogVersion?: string;
+    etag?: string;
+    lastErrorCode?: string;
+    lastErrorMessage?: string;
+  }>('/api/capability-factory/status'),
+  syncCapabilityFactory: httpPost<
+    {
+      items: Array<{
+        id: string;
+        kind: string;
+        name: string;
+        description: string;
+        version: string;
+        status?: string;
+        fileCount?: number;
+        totalBytes?: number;
+        exampleCount?: number;
+        revision?: number;
+        artifactSha256?: string;
+        publishedAt?: string;
+        updatedAt?: string;
+        releaseNotes?: string;
+        compatibility?: { aionui: string };
+        config?: { transport: string; url: string };
+      }>;
+      schemaVersion?: number;
+      generatedAt?: string;
+      installations: Array<{
+        installationId: string;
+        kind: string;
+        capabilityId: string;
+        localResourceId: string;
+        installedVersion: string;
+        backupVersion?: string;
+        state: string;
+        artifactSha256?: string;
+        factoryUrlSnapshot?: string;
+        installedAt?: number;
+        updatedAt?: number;
+        lastCheckedAt?: number;
+        updatePolicy?: string;
+        ignoredVersion?: string;
+        backupPath?: string;
+        backupArtifactSha256?: string;
+        lastErrorCode?: string;
+        lastErrorMessage?: string;
+      }>;
+      stale: boolean;
+      lastSuccessfulSyncAt?: number;
+      catalogVersion?: string;
+    },
+    void
+  >('/api/capability-factory/sync'),
+  getCapabilityCatalog: httpGet<{
+    items: Array<{
+      id: string;
+      kind: string;
+      name: string;
+      description: string;
+      version: string;
+      status?: string;
+      fileCount?: number;
+      totalBytes?: number;
+      exampleCount?: number;
+      revision?: number;
+      artifactSha256?: string;
+      publishedAt?: string;
+      updatedAt?: string;
+      releaseNotes?: string;
+      compatibility?: { aionui: string };
+      config?: { transport: string; url: string };
+    }>;
+    schemaVersion?: number;
+    generatedAt?: string;
+    installations: Array<{
+      installationId: string;
+      kind: string;
+      capabilityId: string;
+      localResourceId: string;
+      installedVersion: string;
+      backupVersion?: string;
+      state: string;
+      artifactSha256?: string;
+      factoryUrlSnapshot?: string;
+      installedAt?: number;
+      updatedAt?: number;
+      lastCheckedAt?: number;
+      updatePolicy?: string;
+      ignoredVersion?: string;
+      backupPath?: string;
+      backupArtifactSha256?: string;
+      lastErrorCode?: string;
+      lastErrorMessage?: string;
+    }>;
+    stale: boolean;
+    lastSuccessfulSyncAt?: number;
+    catalogVersion?: string;
+  }>('/api/capabilities/catalog'),
+  installCapability: httpPost<
+    {
+      installationId: string;
+      kind: string;
+      capabilityId: string;
+      localResourceId: string;
+      installedVersion: string;
+      backupVersion?: string;
+      state: string;
+      artifactSha256?: string;
+      factoryUrlSnapshot?: string;
+      installedAt?: number;
+      updatedAt?: number;
+      lastCheckedAt?: number;
+      updatePolicy?: string;
+      ignoredVersion?: string;
+      backupPath?: string;
+      backupArtifactSha256?: string;
+      lastErrorCode?: string;
+      lastErrorMessage?: string;
+    },
+    { kind: string; capability_id: string }
+  >('/api/capabilities/install'),
+  checkCapabilityInstallation: httpPost<
+    {
+      installationId: string;
+      kind: string;
+      capabilityId: string;
+      localResourceId: string;
+      installedVersion: string;
+      state: string;
+      artifactSha256?: string;
+      factoryUrlSnapshot?: string;
+      installedAt?: number;
+      updatedAt?: number;
+      lastCheckedAt?: number;
+      updatePolicy?: string;
+      ignoredVersion?: string;
+      backupPath?: string;
+      backupVersion?: string;
+      backupArtifactSha256?: string;
+      lastErrorCode?: string;
+      lastErrorMessage?: string;
+    },
+    { installation_id: string }
+  >(
+    (params) => `/api/capabilities/${encodeURIComponent(params.installation_id)}/check`,
+    () => undefined
+  ),
+  updateCapabilityInstallation: httpPost<
+    {
+      installationId: string;
+      kind: string;
+      capabilityId: string;
+      localResourceId: string;
+      installedVersion: string;
+      backupVersion?: string;
+      state: string;
+      artifactSha256?: string;
+      factoryUrlSnapshot?: string;
+      installedAt?: number;
+      updatedAt?: number;
+      lastCheckedAt?: number;
+      updatePolicy?: string;
+      ignoredVersion?: string;
+      backupPath?: string;
+      backupArtifactSha256?: string;
+      lastErrorCode?: string;
+      lastErrorMessage?: string;
+    },
+    { installation_id: string; replace_locally_modified?: boolean }
+  >(
+    (params) => `/api/capabilities/${encodeURIComponent(params.installation_id)}/update`,
+    (params) => ({ replace_locally_modified: params.replace_locally_modified ?? false })
+  ),
+  rollbackCapabilityInstallation: httpPost<
+    {
+      installationId: string;
+      kind: string;
+      capabilityId: string;
+      localResourceId: string;
+      installedVersion: string;
+      backupVersion?: string;
+      state: string;
+      artifactSha256?: string;
+      factoryUrlSnapshot?: string;
+      installedAt?: number;
+      updatedAt?: number;
+      lastCheckedAt?: number;
+      updatePolicy?: string;
+      ignoredVersion?: string;
+      backupPath?: string;
+      backupArtifactSha256?: string;
+      lastErrorCode?: string;
+      lastErrorMessage?: string;
+    },
+    { installation_id: string }
+  >(
+    (params) => `/api/capabilities/${encodeURIComponent(params.installation_id)}/rollback`,
+    () => undefined
+  ),
   importCapabilityPlatformSkill: httpPost<
     { skill_name: string; skill_names?: string[] },
     { platform_url: string; skill_id: string }
   >('/api/skills/capability-platform/import'),
+  readCapabilityPlatformSkill: httpPost<
+    { files: Array<{ path: string; contentBase64: string }> },
+    { platform_url: string; skill_id: string; version: string }
+  >('/api/skills/capability-platform/skill'),
+  listCapabilityPlatformSkillFiles: httpPost<
+    Array<{
+      path: string;
+      bytes: number;
+      sha256: string;
+      mediaType: string;
+      previewPolicy: 'markdown' | 'text' | 'metadata_only';
+    }>,
+    { platform_url: string; skill_id: string; version: string }
+  >('/api/skills/capability-platform/skill-files'),
+  readCapabilityPlatformSkillFile: httpPost<
+    {
+      path: string;
+      bytes: number;
+      sha256: string;
+      mediaType: string;
+      previewPolicy: 'markdown' | 'text' | 'metadata_only';
+      content?: string;
+    },
+    { platform_url: string; skill_id: string; version: string; path: string }
+  >('/api/skills/capability-platform/skill-file'),
   scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folder_path: string }>(
     '/api/skills/scan'
   ),
