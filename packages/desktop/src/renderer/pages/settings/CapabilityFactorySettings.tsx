@@ -191,6 +191,34 @@ const CapabilityFactorySettings: React.FC = () => {
     }
   };
 
+  const uninstallCapability = (installation: CapabilityInstallation, name: string) => {
+    Modal.confirm({
+      title: t('common.delete', { defaultValue: '删除' }),
+      content:
+        installation.kind === 'skill'
+          ? t('settings.skillsHub.deleteConfirmContent', { name })
+          : t('settings.mcpDeleteConfirm'),
+      okText: t('common.delete', { defaultValue: '删除' }),
+      onOk: async () => {
+        setWorkingId(installation.installationId);
+        try {
+          await fs.uninstallCapability.invoke({ installation_id: installation.installationId });
+          setInstallations((current) => {
+            const next = new Map(current);
+            next.delete(`${installation.kind}:${installation.capabilityId}`);
+            return next;
+          });
+          Message.success(t('common.deleteSuccess'));
+        } catch (error) {
+          Message.error(errorMessage(error));
+          throw error;
+        } finally {
+          setWorkingId(undefined);
+        }
+      },
+    });
+  };
+
   const testConnection = async () => {
     const endpoint = platformUrl.trim();
     if (!/^https?:\/\//i.test(endpoint)) {
@@ -331,10 +359,16 @@ const CapabilityFactorySettings: React.FC = () => {
                   <div className='mt-4px text-16px font-600 text-t-primary'>
                     {item?.name ?? installation.capabilityId}
                   </div>
+                  {item ? <p className='my-8px text-13px leading-relaxed'>{item.description}</p> : null}
                   <div className='mt-8px break-all'>{installation.localResourceId}</div>
                   <div className='mt-8px'>{installation.state}</div>
+                  {item ? (
+                    <Button className='mt-10px' size='mini' type='secondary' onClick={() => setSelectedItem(item)}>
+                      查看详情
+                    </Button>
+                  ) : null}
                   <Button
-                    className='mt-10px'
+                    className={item ? 'ml-8px mt-10px' : 'mt-10px'}
                     size='mini'
                     type='secondary'
                     loading={workingId === installation.installationId}
@@ -375,6 +409,15 @@ const CapabilityFactorySettings: React.FC = () => {
                       {t('settings.capabilityFactoryRollback')}
                     </Button>
                   ) : null}
+                  <Button
+                    className='ml-8px mt-10px'
+                    size='mini'
+                    status='danger'
+                    loading={workingId === installation.installationId}
+                    onClick={() => uninstallCapability(installation, item?.name ?? installation.capabilityId)}
+                  >
+                    {t('common.delete', { defaultValue: '删除' })}
+                  </Button>
                 </section>
               );
             })}
@@ -473,6 +516,7 @@ const CapabilityFactorySettings: React.FC = () => {
       <Modal
         visible={Boolean(selectedItem)}
         title={selectedItem?.name}
+        style={selectedItem?.kind === 'skill' ? { width: 1200, maxWidth: 'calc(100vw - 48px)' } : undefined}
         footer={
           selectedItem ? (
             <Button
@@ -488,11 +532,19 @@ const CapabilityFactorySettings: React.FC = () => {
         onCancel={() => setSelectedItem(undefined)}
       >
         {selectedItem ? (
-          <div className='flex flex-col gap-12px text-13px leading-relaxed text-t-secondary'>
-            <div>{selectedItem.description}</div>
+          <div
+            className='h-full min-h-0 flex flex-col gap-12px text-13px leading-relaxed text-t-secondary'
+            data-testid='capability-detail'
+            style={
+              selectedItem.kind === 'skill'
+                ? { height: 'calc(100vh - 220px)', maxHeight: 680, overflow: 'hidden' }
+                : undefined
+            }
+          >
+            <div className='flex-shrink-0'>{selectedItem.description}</div>
             {selectedItem.kind === 'skill' ? (
-              <div className='grid grid-cols-[180px_1fr] gap-12px min-h-300px'>
-                <div className='flex flex-col gap-4px overflow-auto border-r border-border-2 pr-8px'>
+              <div className='min-h-0 flex-1 grid grid-cols-1 grid-rows-[minmax(100px,auto)_minmax(0,1fr)] gap-12px md:grid-cols-[220px_minmax(0,1fr)] md:grid-rows-1'>
+                <div className='max-h-160px flex flex-col gap-4px overflow-auto border-b border-border-2 pb-8px md:max-h-none md:border-b-0 md:border-r md:pb-0 md:pr-8px'>
                   {detailLoading && detailFiles.length === 0 ? (
                     <Spin />
                   ) : (
@@ -508,7 +560,7 @@ const CapabilityFactorySettings: React.FC = () => {
                     ))
                   )}
                 </div>
-                <div className='overflow-auto max-h-400px'>
+                <div className='min-h-0 min-w-0 overflow-auto'>
                   {detailLoading ? (
                     <Spin />
                   ) : selectedFile?.previewPolicy === 'markdown' ? (

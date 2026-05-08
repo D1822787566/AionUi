@@ -1178,6 +1178,9 @@ export const fs = {
     (params) => `/api/capabilities/${encodeURIComponent(params.installation_id)}/rollback`,
     () => undefined
   ),
+  uninstallCapability: httpDelete<void, { installation_id: string }>(
+    (params) => `/api/capabilities/${encodeURIComponent(params.installation_id)}`
+  ),
   importCapabilityPlatformSkill: httpPost<
     { skill_name: string; skill_names?: string[] },
     { platform_url: string; skill_id: string }
