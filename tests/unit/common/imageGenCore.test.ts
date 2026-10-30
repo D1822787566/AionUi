@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, expect, it, afterEach } from 'vitest';
+import { describe, expect, it, afterEach, type TestContext } from 'vitest';
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve as pathResolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -28,6 +28,17 @@ function createNonImageFile(dir: string, name: string): string {
   const filePath = join(dir, name);
   writeFileSync(filePath, 'hello world');
   return filePath;
+}
+
+function createFileSymlink(target: string, link: string, skip: TestContext['skip']): void {
+  try {
+    symlinkSync(target, link);
+  } catch (error) {
+    if (process.platform === 'win32' && (error as NodeJS.ErrnoException).code === 'EPERM') {
+      skip('Windows file symlinks require Developer Mode or the symbolic link privilege');
+    }
+    throw error;
+  }
 }
 
 afterEach(() => {
@@ -140,14 +151,14 @@ describe('processImageUri', () => {
     await expect(processImageUri('nonexistent.png', ws)).rejects.toThrow('Image file not found');
   });
 
-  it('should block a symlink inside the workspace that points outside', async () => {
+  it('should block a symlink inside the workspace that points outside', async ({ skip }) => {
     const ws = createWorkspace();
     // Secret image lives outside the workspace; a symlink inside the workspace
     // points to it. The lexical containment check passes for the link path, but
     // realpath must reveal the escape and block the read.
     const outsideDir = createWorkspace();
     const secretImg = createImageFile(outsideDir, 'secret.png');
-    symlinkSync(secretImg, join(ws, 'linked.png'));
+    createFileSymlink(secretImg, join(ws, 'linked.png'), skip);
 
     await expect(processImageUri('linked.png', ws)).rejects.toThrow('Path traversal blocked');
   });
@@ -156,15 +167,15 @@ describe('processImageUri', () => {
     const ws = createWorkspace();
     const outsideDir = createWorkspace();
     createImageFile(outsideDir, 'secret.png');
-    symlinkSync(outsideDir, join(ws, 'linked-dir'), 'dir');
+    symlinkSync(outsideDir, join(ws, 'linked-dir'), process.platform === 'win32' ? 'junction' : 'dir');
 
     await expect(processImageUri('linked-dir/secret.png', ws)).rejects.toThrow('Path traversal blocked');
   });
 
-  it('should allow a symlink inside the workspace that stays inside', async () => {
+  it('should allow a symlink inside the workspace that stays inside', async ({ skip }) => {
     const ws = createWorkspace();
     const imgPath = createImageFile(ws, 'real.png');
-    symlinkSync(imgPath, join(ws, 'alias.png'));
+    createFileSymlink(imgPath, join(ws, 'alias.png'), skip);
 
     const result = await processImageUri('alias.png', ws);
 
