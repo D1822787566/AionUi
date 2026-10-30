@@ -89,16 +89,17 @@ const getLocalStorage = (): Storage | null => {
   }
 };
 
-const loadUi = (id: string): PersistedUi => {
+const loadUi = (id: string): PersistedUi | undefined => {
   const ls = getLocalStorage();
-  if (!ls) return { expanded: [] };
+  if (!ls) return undefined;
   try {
     const raw = ls.getItem(uiStorageKey(id));
-    if (!raw) return { expanded: [] };
+    if (!raw) return undefined;
     const parsed = JSON.parse(raw) as Partial<PersistedUi>;
-    return { expanded: Array.isArray(parsed.expanded) ? parsed.expanded : [], selected: parsed.selected };
+    if (!Array.isArray(parsed.expanded)) return undefined;
+    return { expanded: parsed.expanded, selected: parsed.selected };
   } catch {
-    return { expanded: [] };
+    return undefined;
   }
 };
 
@@ -376,9 +377,10 @@ export const openProject = (id: string, projectRoots: RootRef[]): void => {
   // in the tree — a leak. Keys are kept only for the current roots' pe_ids.
   const validPeIds = new Set(projectRoots.map((r) => r.pe_id));
   const ui = loadUi(id);
-  const restored = ui.expanded.length > 0 ? ui.expanded : projectRoots.map((r) => peKey(r.pe_id, ''));
+  // An explicitly saved empty set means the user collapsed all roots.
+  const restored = ui?.expanded ?? projectRoots.map((r) => peKey(r.pe_id, ''));
   expanded = new Set(restored.filter((k) => validPeIds.has(keyToRef(k).pe_id)));
-  selected = ui.selected && validPeIds.has(keyToRef(ui.selected).pe_id) ? ui.selected : null;
+  selected = ui?.selected && validPeIds.has(keyToRef(ui.selected).pe_id) ? ui.selected : null;
   commit();
   scheduleReconcile();
 };
@@ -395,6 +397,11 @@ export const setExpandedKeys = (keys: PeKey[]): void => {
   persistUi();
   commit();
   scheduleReconcile();
+};
+
+/** Collapse every directory in the current project and persist that user choice. */
+export const collapseAll = (): void => {
+  setExpandedKeys([]);
 };
 
 /** Expand or collapse a directory. Collapse keeps descendant expanded marks. */
@@ -453,13 +460,15 @@ export const onReconnect = (): void => {
  * indicator (an HTTP-sourced stat, decoupled from the watcher) is recovered
  * separately by the container's `mutate()`.
  */
-export const refreshRoot = (peId: string): void => {
-  if (!port) return;
+export const refreshRoot = (peId: string): Promise<void> => {
+  if (!port) return Promise.resolve();
+  const pid = projectId;
   const refs = [...current].filter((key) => keyToRef(key).pe_id === peId).map(keyToRef);
-  if (refs.length === 0) return; // collapsed / nothing watched → no backend mount to refresh
-  port
+  if (refs.length === 0) return Promise.resolve(); // collapsed / nothing watched → no backend mount to refresh
+  return port
     .remount(refs)
     .then((result) => {
+      if (projectId !== pid) return;
       // Apply each fresh snapshot, guarding against keys no longer wanted (the
       // tree may have collapsed while the request was in flight). Mirrors the
       // subscribe-reply application in runReconcile.

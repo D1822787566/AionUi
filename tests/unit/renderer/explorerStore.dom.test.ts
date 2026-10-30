@@ -5,6 +5,7 @@ import { peKey, refToKey } from '@/renderer/pages/conversation/explorer/explorer
 import type { MonitorPort, SubscribeResult } from '@/renderer/pages/conversation/explorer/explorerStore';
 import {
   applyMonitorNotification,
+  collapseAll,
   configureExplorerStore,
   getExplorerInternalsForTest,
   getExplorerSnapshot,
@@ -354,6 +355,53 @@ describe('refreshRoot (manual per-root backend remount)', () => {
     { pe_id: 'pe2', title: 'lib' },
   ];
 
+  it('returns a promise that settles only when the remount result is applied', async () => {
+    const h = makeDeferredPort({ [peKey('pe1', '')]: [file('current.ts')] });
+    configureExplorerStore(h.port);
+    openProject('proj1', roots);
+    await flush();
+    h.resolveNext();
+    await flush();
+    let finished = false;
+    const refresh = refreshRoot('pe1').then(() => {
+      finished = true;
+    });
+    await flush();
+    expect(finished).toBe(false);
+    h.resolveNext();
+    await refresh;
+    expect(finished).toBe(true);
+  });
+
+  it('ignores a late remount result after switching projects with the same root', async () => {
+    const h = makeDeferredPort({ [peKey('pe1', '')]: [file('old-project.ts')] });
+    configureExplorerStore(h.port);
+    openProject('proj1', roots);
+    await flush();
+    h.resolveNext();
+    await flush();
+    const refresh = refreshRoot('pe1');
+    openProject('proj2', roots);
+    await flush();
+    h.resolveNext();
+    await refresh;
+    expect(getExplorerInternalsForTest().cacheKeys).toEqual([]);
+    h.resolveNext();
+    await flush();
+  });
+
+  it('settles a failed remount without clearing the last good listing', async () => {
+    const h = makePort({ [peKey('pe1', '')]: [file('cached.ts')] });
+    configureExplorerStore(h.port);
+    openProject('proj1', roots);
+    await flush();
+    h.port.remount = async () => {
+      throw new Error('offline');
+    };
+    await refreshRoot('pe1');
+    expect(childNames(getExplorerSnapshot().treeData, peKey('pe1', ''))).toEqual(['cached.ts']);
+  });
+
   it('remounts only the target root’s watched subtree, leaving other roots and subscriptions untouched', async () => {
     const h = makePort({
       [peKey('pe1', '')]: [dir('a')],
@@ -446,6 +494,31 @@ describe('refreshRoot (manual per-root backend remount)', () => {
 });
 
 describe('per-project persistence', () => {
+  it('keeps all roots collapsed after switching projects and reopening', async () => {
+    const h = makePort();
+    configureExplorerStore(h.port);
+    openProject('proj1', roots);
+    await flush();
+    collapseAll();
+    await flush();
+    expect(h.unsubscribed.flat()).toEqual([{ pe_id: 'pe1', relative_path: '' }]);
+
+    openProject('other', [{ pe_id: 'pe2', title: 'Other' }]);
+    await flush();
+    h.subscribed.length = 0;
+    openProject('proj1', roots);
+    await flush();
+
+    expect(getExplorerSnapshot().expanded).toEqual([]);
+    expect(h.subscribed).toEqual([]);
+  });
+
+  it('expands roots when saved UI state is malformed', () => {
+    localStorage.setItem('explorer-ui:proj1', JSON.stringify({ expanded: 'invalid' }));
+    openProject('proj1', roots);
+    expect(getExplorerSnapshot().expanded).toEqual([peKey('pe1', '')]);
+  });
+
   it('restores expanded state from localStorage on reopen', async () => {
     const h = makePort({ [peKey('pe1', '')]: [dir('a')], [peKey('pe1', 'a')]: [] });
     configureExplorerStore(h.port);

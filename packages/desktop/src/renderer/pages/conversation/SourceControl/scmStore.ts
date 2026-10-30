@@ -260,7 +260,7 @@ export const applyScmNotification = (method: string, params: unknown): void => {
  * makes the contradiction visible instead of leaving it to be inferred from a repo
  * that never populates.
  */
-const applyRepositoriesChanged = (delta: ScmRepositoriesChanged | undefined): void => {
+const applyRepositoriesChanged = (delta: ScmRepositoriesChanged | undefined): Promise<void> | void => {
   if (!delta) return;
   // Drop a frame addressed to a different project before touching the store. The
   // status/change stream is shared across a multi-project session while this store
@@ -312,7 +312,7 @@ const applyRepositoriesChanged = (delta: ScmRepositoriesChanged | undefined): vo
   // Computed from the post-removal list on purpose: a removed repo must NOT be
   // re-subscribed here, and `subscribed` no longer contains it either.
   const missing = repositories.map((r) => r.repo_id).filter((id) => !subscribed.has(id));
-  if (missing.length > 0) void subscribeRepos(missing);
+  if (missing.length > 0) return subscribeRepos(missing);
 };
 
 // ── actions ─────────────────────────────────────────────────────────────────
@@ -383,6 +383,39 @@ export const openScmProject = async (id: string): Promise<void> => {
     loadState = 'error';
     error = e instanceof Error ? e.message : String(e);
     commit();
+  }
+};
+
+/**
+ * Re-list the open project and reconcile its repositories without tearing down
+ * warm status subscriptions. This surfaces worktrees created inside an already
+ * open repository, which the backend does not push as a project-level change.
+ */
+export const rediscoverRepos = async (): Promise<void> => {
+  const pid = projectId;
+  if (!port || pid === null) return;
+
+  try {
+    const result = await port.listRepositories(pid);
+    // The project may have changed while the request was in flight.
+    if (projectId !== pid) return;
+
+    const next = result.repositories ?? [];
+    const currentIds = new Set(repositories.map((repo) => repo.repo_id));
+    const nextIds = new Set(next.map((repo) => repo.repo_id));
+    const removed = [...currentIds].filter((id) => !nextIds.has(id));
+    const release = removed.filter((id) => subscribed.has(id));
+    if (release.length > 0) port.unsubscribe(release);
+    loadState = 'ready';
+    error = undefined;
+    await applyRepositoriesChanged({
+      project_id: pid,
+      added: next.filter((repo) => !currentIds.has(repo.repo_id)),
+      changed: next.filter((repo) => currentIds.has(repo.repo_id)),
+      removed,
+    });
+  } catch {
+    // Keep the last known repository list when discovery is unavailable.
   }
 };
 
