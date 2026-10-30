@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.0.4
+
+### Desktop
+
+#### Features
+
+- **explorer:** refresh Files and Changes from a shared toolbar and collapse all folders with persistent state.
+- **scm:** discover newly created worktrees and release removed repository subscriptions on refresh.
+
+#### Bug Fixes
+
+- **explorer:** prevent repeated refresh requests until all refresh operations finish.
+
+---
+
 ## [2.2.1](https://github.com/iOfficeAI/AionUi/compare/v2.1.61...v2.2.1) (2026-09-01)
 
 ### Desktop
