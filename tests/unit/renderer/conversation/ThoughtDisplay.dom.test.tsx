@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@arco-design/web-react', () => ({
@@ -9,12 +9,13 @@ vi.mock('@arco-design/web-react', () => ({
     children,
     className,
     onClick,
+    ...props
   }: {
     children: React.ReactNode;
     className?: string;
     onClick?: () => void;
   }) => (
-    <button className={className} onClick={onClick}>
+    <button className={className} onClick={onClick} {...props}>
       {children}
     </button>
   ),
@@ -33,6 +34,14 @@ import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 const FIXED_NOW = 1_700_000_000_000;
 
 describe('ThoughtDisplay status text', () => {
+  it('renders legacy thought events as compact chips with details expanded on demand', () => {
+    render(<ThoughtDisplay running thought={{ subject: 'Thinking', description: 'Detailed reasoning' }} />);
+    const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByText('Detailed reasoning')).toHaveLength(2);
+  });
   it('renders custom status text with a spinner while running', () => {
     render(<ThoughtDisplay running statusText='Processing… 2 queued' />);
 

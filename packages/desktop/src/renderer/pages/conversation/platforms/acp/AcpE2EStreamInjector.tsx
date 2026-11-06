@@ -24,6 +24,7 @@ type RunScenarioOptions = {
 };
 
 type StreamController = {
+  emitProcessTrace: (complete?: boolean) => Promise<void>;
   runScenario: (options?: RunScenarioOptions) => Promise<void>;
   emitInfoTip: (code: string, content: string) => Promise<void>;
   emitErrorTip: (content: string, error?: Record<string, unknown>) => Promise<void>;
@@ -127,6 +128,132 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
     });
 
     registry.controllers[conversationId] = {
+      emitProcessTrace: async (complete = false) => {
+        const turnId = 'e2e-process-turn';
+        const createdAt = Date.now() - 5000;
+        if (!complete) {
+          localSendStarted(conversationId);
+          localSendAccepted(conversationId, turnId, runningRuntime(turnId), 'e2e-process-request');
+          const trace: TMessage[] = [
+            {
+              id: 'e2e-process-user',
+              type: 'text',
+              position: 'right',
+              content: { content: '帮我查一下这个月的退货单有多少。' },
+              conversation_id: conversationId,
+              created_at: createdAt - 1,
+            },
+            {
+              id: 'e2e-process-thinking-1',
+              type: 'thinking',
+              position: 'left',
+              content: {
+                subject: '确认查询范围',
+                content: 'The user asks for return slips this month. Check the date fields first.',
+                status: 'done',
+                duration: 2000,
+              },
+              conversation_id: conversationId,
+              created_at: createdAt,
+            },
+            {
+              id: 'e2e-process-empty',
+              type: 'text',
+              position: 'left',
+              content: { content: '' },
+              conversation_id: conversationId,
+              created_at: createdAt + 1,
+            },
+            {
+              id: 'e2e-process-tool',
+              type: 'tool_call',
+              position: 'left',
+              content: {
+                call_id: 'query-planned',
+                name: 'query_db',
+                args: {
+                  sql: "SELECT COUNT(*) FROM return_slips WHERE planned_date >= '2026-05-01' AND planned_date < '2026-06-01'",
+                },
+                status: 'completed',
+                output: '15',
+              },
+              conversation_id: conversationId,
+              created_at: createdAt + 2,
+            },
+            {
+              id: 'e2e-process-note',
+              type: 'text',
+              position: 'left',
+              content: { content: '已检查计划日期，继续核对申请日期口径。' },
+              conversation_id: conversationId,
+              created_at: createdAt + 3,
+            },
+            {
+              id: 'e2e-process-thinking-2',
+              type: 'thinking',
+              position: 'left',
+              content: {
+                subject: '核对日期口径',
+                content: 'Compare application date with planned return date.',
+                status: 'done',
+                duration: 1000,
+              },
+              conversation_id: conversationId,
+              created_at: createdAt + 4,
+            },
+            {
+              id: 'e2e-process-tool-2',
+              type: 'tool_call',
+              position: 'left',
+              content: {
+                call_id: 'query-applied',
+                name: 'query_db',
+                args: {
+                  query:
+                    "SELECT COUNT(*) FROM return_slips WHERE application_date >= '2026-05-01' AND application_date < '2026-06-01'",
+                },
+                status: 'completed',
+                output: '15',
+              },
+              conversation_id: conversationId,
+              created_at: createdAt + 5,
+            },
+          ];
+          for (const message of trace) addOrUpdateMessage({ ...message, msg_id: message.id });
+        }
+        addOrUpdateMessage({
+          id: 'e2e-process-thinking-3',
+          msg_id: 'e2e-process-thinking-3',
+          type: 'thinking',
+          position: 'left',
+          conversation_id: conversationId,
+          created_at: createdAt + 6,
+          content: {
+            subject: '整理查询结果',
+            content: 'Both date definitions return 15 slips. Keep the two query results in the same process timeline.',
+            status: complete ? 'done' : 'thinking',
+          },
+        });
+        if (complete) {
+          turnCompleted(conversationId, turnId, {
+            state: 'idle',
+            can_send_message: true,
+            has_task: false,
+            is_processing: false,
+            pending_confirmations: 0,
+            turn_id: null,
+          });
+          addOrUpdateMessage({
+            id: 'e2e-process-answer',
+            msg_id: 'e2e-process-answer',
+            type: 'text',
+            position: 'left',
+            conversation_id: conversationId,
+            created_at: Date.now(),
+            content: { content: '本月退货单共 15 张；按计划日期与申请日期统计，结果一致。' },
+          });
+        }
+      },
       emitPlan: async (entries, options) => {
         const msgId = options?.msgId ?? 'e2e-plan-msg';
         const turnId = options?.turnId ?? 'e2e-plan-turn';

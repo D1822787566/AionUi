@@ -1,0 +1,65 @@
+.root {
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+.row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+.summary:global(.arco-btn) {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+  padding: 2px 4px;
+  height: 28px;
+  color: var(--text-secondary);
+  text-align: start;
+}
+.summary:global(.arco-btn-disabled) {
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: default;
+}
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.chip {
+  font-size: 11px;
+  padding: 1px 6px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-1);
+  border-radius: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.elapsed {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.rotated {
+  transform: rotate(90deg);
+}
+.detail {
+  margin: 4px 0 4px 7px;
+  padding: 4px 0 4px 14px;
+  border-inline-start: 1px solid var(--border-base);
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font-size: 12px;
+  line-height: 1.7;
+}

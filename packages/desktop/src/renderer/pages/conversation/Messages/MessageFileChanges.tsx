@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
+import type { FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
+import ProcessFiles from './components/ProcessTrace/ProcessFiles';
 import { usePreviewLauncher } from '@/renderer/hooks/file/usePreviewLauncher';
 import { extractContentFromDiff, parseDiff, type FileChangeInfo } from '@/renderer/utils/file/diffUtils';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import React, { useCallback, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { WriteFileResult } from './types';
 
 export { parseDiff, type FileChangeInfo } from '@/renderer/utils/file/diffUtils';
@@ -25,7 +25,6 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
   diffsChanges = [],
   className,
 }) => {
-  const { t } = useTranslation();
   const { launchPreview } = usePreviewLauncher();
 
   const fileChanges = useMemo(() => {
@@ -80,13 +79,24 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
   }
 
   return (
-    <FileChangesPanel
-      title={t('messages.fileChangesCount', { count: fileChanges.length })}
-      files={fileChanges}
-      onFileClick={handleFileClick}
-      onDiffClick={handleDiffClick}
-      className={className}
-    />
+    <div className={className}>
+      <ProcessFiles
+        files={fileChanges.map((file) => ({
+          path: file.fullPath,
+          added: file.insertions,
+          removed: file.deletions,
+          diff: file.diff,
+        }))}
+        onOpenFile={(file) => {
+          const source = fileChanges.find((item) => item.fullPath === file.path);
+          if (source) handleFileClick(source);
+        }}
+        onOpenDiff={(file) => {
+          const source = fileChanges.find((item) => item.fullPath === file.path);
+          if (source) handleDiffClick(source);
+        }}
+      />
+    </div>
   );
 };
 

@@ -5,13 +5,18 @@
  */
 
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
-import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
+import type { ProcessMessage } from './components/ProcessTrace/adapter';
+import { groupProcessTimeline, type ProcessTurn } from './components/ProcessTrace/turns';
+import { getConversationTurnStart } from '../utils/conversationTurnClock';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getChatSurfaceWidthClass } from '@/renderer/pages/conversation/utils/chatSurfaceWidth';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
 import { collectAiCopyRows, type TurnCopyItem } from '@/renderer/utils/chat/turnCopy';
+import { stripThinkTags } from '@/renderer/utils/chat/thinkTagFilter';
+import { stripSkillSuggest } from '@/renderer/utils/chat/skillSuggestParser';
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/MessageAcpPermission';
@@ -41,7 +46,7 @@ import MessageAgentStatus from './components/MessageAgentStatus';
 import MessageTips from './components/MessageTips';
 import MessageToolCall from './components/MessageToolCall';
 import MessageToolGroup from './components/MessageToolGroup';
-import MessageToolGroupSummary from './components/MessageToolGroupSummary';
+import MessageToolGroupSummary, { type ProcessEntry } from './components/MessageToolGroupSummary';
 import MessageCronTrigger from './components/MessageCronTrigger';
 import MessageSkillSuggest from './components/MessageSkillSuggest';
 import MessageText from './components/MessageText';
@@ -56,12 +61,13 @@ type IMessageVO =
   | {
       type: 'tool_summary';
       id: string;
-      messages: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall>;
+      messages: ProcessMessage[];
       sourceMessageIds: string[];
       created_at: number;
     };
 type IArtifactVO = { type: 'artifact'; id: string; artifact: IConversationArtifact; created_at: number };
-type IProcessedItem = IMessageVO | IArtifactVO;
+type TimelineItem = IMessageVO | IArtifactVO;
+type IProcessedItem = TimelineItem | ProcessTurn<TimelineItem>;
 
 type CompactAcpToolCallContent = IMessageAcpToolCall['content'] & {
   _compact?: {
@@ -114,7 +120,7 @@ const getProcessedItemSourceMessageIds = (item: IProcessedItem): string[] => {
   if ('type' in item && item.type === 'artifact') {
     return [item.id];
   }
-  if ('type' in item && item.type === 'tool_summary') {
+  if ('type' in item && (item.type === 'tool_summary' || item.type === 'process_turn')) {
     return item.sourceMessageIds;
   }
   if ('type' in item && item.type === 'file_summary') {
@@ -136,7 +142,7 @@ const getProcessedItemAnchorId = (item: IProcessedItem): string => {
 };
 
 const getProcessedItemCreatedAt = (item: IProcessedItem): number => {
-  if ('type' in item && ['file_summary', 'tool_summary', 'artifact'].includes(item.type)) {
+  if ('type' in item && ['file_summary', 'tool_summary', 'process_turn', 'artifact'].includes(item.type)) {
     return item.created_at;
   }
   return item.created_at ?? 0;
@@ -343,7 +349,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   // While the agent is still streaming, the in-progress turn's last text keeps
   // moving down, so we defer its copy/timestamp row until the turn finishes to
   // avoid the row flashing in and the layout reflowing mid-stream.
-  const { isProcessing } = useConversationRuntimeView(conversationContext?.conversation_id ?? '');
+  const { isProcessing, state: runtimeState } = useConversationRuntimeView(conversationContext?.conversation_id ?? '');
   const { t } = useTranslation();
   const location = useLocation();
   const locationState = (location.state || {}) as ConversationLocationState;
@@ -355,11 +361,11 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const contentElementRef = useRef<HTMLDivElement | null>(null);
 
   // Pre-process message list to group tool outputs into summary cards
-  const processedList = useMemo(() => {
+  const timeline = useMemo(() => {
     const result: Array<IMessageVO> = [];
     let diffsChanges: FileChangeInfo[] = [];
     let diffsSourceMessageIds: string[] = [];
-    let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall> = [];
+    let toolList: ProcessMessage[] = [];
     let toolSourceMessageIds: string[] = [];
 
     const pushFileDiffChanges = (changes: FileChangeInfo, sourceMessageId: string, created_at: number) => {
@@ -378,7 +384,9 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       toolList = [];
       toolSourceMessageIds = [];
     };
-    const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall) => {
+    const pushToolList = (message: ProcessMessage) => {
+      const previousAnchor = toolList.find((entry) => entry.backend_turn_id)?.backend_turn_id;
+      if (previousAnchor && message.backend_turn_id && previousAnchor !== message.backend_turn_id) toolList = [];
       if (!toolList.length) {
         toolSourceMessageIds = [];
         result.push({
@@ -410,7 +418,16 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       // A plan renders in ConversationPlanBar, never in the stream. Filtered
       // here rather than rendered as null: a null row still occupies a slot.
       if (message.type === 'plan') continue;
+      if (message.type === 'thinking') {
+        pushToolList(message);
+        continue;
+      }
       if (message.type === 'tool_group') {
+        // Keep interactive confirmations on their original renderer and IPC path.
+        if (message.content.some((item) => item.status === 'Confirming' && item.confirmationDetails)) {
+          pushStandaloneMessage(message);
+          continue;
+        }
         const writeFileResults = message.content.flatMap((item) =>
           item.name === 'WriteFile' && isWriteFileResult(item.result_display) ? [item.result_display] : []
         );
@@ -459,6 +476,18 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     );
   }, [artifacts, list]);
 
+  const processedList = useMemo(() => groupProcessTimeline(timeline), [timeline]);
+
+  const activeProcessId = useMemo(() => {
+    if (!isProcessing && runtimeState !== 'waiting_confirmation') return undefined;
+    for (let i = processedList.length - 1; i >= 0; i--) {
+      const item = processedList[i];
+      if (item.type === 'process_turn') return item.id;
+      if ('position' in item && item.position === 'right') break;
+    }
+    return undefined;
+  }, [isProcessing, runtimeState, processedList]);
+
   // An AI reply can be split into several messages (thinking / multiple text /
   // tool blocks). The hover copy + timestamp row should appear once per turn,
   // after the turn's last text — not under every intermediate text block.
@@ -469,16 +498,16 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   // row is withheld (it would otherwise appear then shift down as more text
   // streams in); earlier, already-finished turns always keep their row.
   const { copyRowIds: aiCopyRowTextIds, turnTextsById: aiTurnTextsById } = useMemo(
-    () => collectAiCopyRows(processedList as TurnCopyItem[], isProcessing),
-    [processedList, isProcessing]
+    () => collectAiCopyRows(timeline as TurnCopyItem[], isProcessing),
+    [timeline, isProcessing]
   );
 
   // The last REAL message in the visible timeline (pseudo entries like
   // file/tool summaries don't count). HEAD-fork backends (claude/ACP) only
   // show the fork entry point here — see `isForkEnabled`.
   const lastMessageId = useMemo(() => {
-    for (let i = processedList.length - 1; i >= 0; i--) {
-      const item = processedList[i];
+    for (let i = timeline.length - 1; i >= 0; i--) {
+      const item = timeline[i];
       if (
         'type' in item &&
         (item.type === 'file_summary' || item.type === 'tool_summary' || item.type === 'artifact')
@@ -488,7 +517,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       return (item as TMessage).id;
     }
     return undefined;
-  }, [processedList]);
+  }, [timeline]);
 
   // Mirror of the server's fork-anchor resolution ("nearest backend_turn_id at
   // or before the message"): a message is mid-history forkable once ANY message
@@ -497,7 +526,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const forkAnchoredIds = useMemo(() => {
     const ids = new Set<string>();
     let seenAnchor = false;
-    for (const item of processedList) {
+    for (const item of timeline) {
       if (
         'type' in item &&
         (item.type === 'file_summary' || item.type === 'tool_summary' || item.type === 'artifact')
@@ -509,7 +538,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       if (seenAnchor) ids.add(message.id);
     }
     return ids;
-  }, [processedList]);
+  }, [timeline]);
 
   // Use auto-scroll hook
   const {
@@ -675,8 +704,58 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     scrollToBottom('smooth');
   };
 
-  const renderItem = (_index: number, item: (typeof processedList)[0]) => {
+  const renderItem = (_index: number, item: IProcessedItem): React.ReactNode => {
+    // Skip the layout wrapper too, including text emptied by existing display filters.
+    if (
+      item.type === 'text' &&
+      (!item.content.content ||
+        (typeof item.content.content === 'string' && !stripSkillSuggest(stripThinkTags(item.content.content)).trim()))
+    ) {
+      return null;
+    }
     const highlighted = matchesTargetMessage(item, highlightedMessageId);
+    if (item.type === 'process_turn') {
+      return (
+        <div
+          id={`message-${getProcessedItemAnchorId(item)}`}
+          className={`${rowWidthClass} min-w-0 message-item px-8px m-t-10px process_turn`}
+          style={highlighted ? highlightStyle : undefined}
+        >
+          <MessageToolGroupSummary
+            messages={item.messages}
+            active={item.id === activeProcessId}
+            waiting={item.id === activeProcessId && runtimeState === 'waiting_confirmation'}
+            startedAt={
+              item.id === activeProcessId
+                ? (getConversationTurnStart(conversationContext?.conversation_id ?? '') ?? undefined)
+                : undefined
+            }
+            revealMessageId={highlighted ? highlightedMessageId : undefined}
+            entries={item.items.flatMap<ProcessEntry>((entry) => {
+              if (entry.type === 'tool_summary') return entry.messages;
+              const content = renderItem(0, entry);
+              if (content === null) return [];
+              return [
+                {
+                  type: 'process_content' as const,
+                  id: entry.id,
+                  content,
+                  pinned: entry.type !== 'text',
+                  toolCount:
+                    entry.type === 'file_summary'
+                      ? new Set(entry.sourceMessageIds).size
+                      : entry.type === 'tool_group'
+                        ? entry.content.length
+                        : entry.type === 'acp_tool_call'
+                          ? 1
+                          : 0,
+                },
+              ];
+            })}
+          />
+        </div>
+      );
+    }
     if ('type' in item && item.type === 'artifact') {
       return (
         <div
@@ -704,7 +783,12 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           style={highlighted ? highlightStyle : undefined}
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
-          {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
+          {item.type === 'tool_summary' && (
+            <MessageToolGroupSummary
+              messages={item.messages}
+              active={item.id === activeProcessId}
+            ></MessageToolGroupSummary>
+          )}
         </div>
       );
     }

@@ -64,7 +64,7 @@ describe('MessageToolGroupSummary', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('View Steps · 1'));
+    fireEvent.click(screen.getByRole('button', { name: /conversation.processTrace.status.completed/ }));
     fireEvent.click(screen.getByText('rg'));
 
     await waitFor(() => {

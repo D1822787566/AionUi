@@ -6,7 +6,7 @@
 
 import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
 import { getAcpImageFileName, getAcpImagePath } from '@/common/chat/acpToolCallOutput';
-import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import ProcessFiles from '../components/ProcessTrace/ProcessFiles';
 import LocalImageView from '@/renderer/components/media/LocalImageView';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
@@ -53,12 +53,12 @@ const DiffContentView: React.FC<{ old_text: string; new_text: string; path: stri
   });
 
   return (
-    <FileChangesPanel
-      title={display_name}
-      files={[fileInfo]}
-      onFileClick={handleFileClick}
-      onDiffClick={handleDiffClick}
-      defaultExpanded={true}
+    <ProcessFiles
+      files={[
+        { path: path || display_name, added: fileInfo.insertions, removed: fileInfo.deletions, diff: formattedDiff },
+      ]}
+      onOpenFile={() => handleFileClick(fileInfo)}
+      onOpenDiff={() => handleDiffClick(fileInfo)}
     />
   );
 };

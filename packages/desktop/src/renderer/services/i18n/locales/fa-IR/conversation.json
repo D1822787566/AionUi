@@ -782,5 +782,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "گسترش برنامه",
     "collapse": "جمع کردن برنامه"
+  },
+  "processTrace": {
+    "thinking": "Thinking",
+    "thoughts": "{{count}} reasoning steps",
+    "calls": "{{count}} tool calls",
+    "title": "Activity",
+    "calls_one": "{{count}} tool call",
+    "calls_other": "{{count}} tool calls",
+    "earlier": "Show {{count}} earlier steps",
+    "recent": "Show recent steps",
+    "input": "Input",
+    "output": "Output",
+    "failure": "This step failed",
+    "files": "Changed files",
+    "openDiff": "View changes in {{file}}",
+    "waitingHint": "Waiting for your confirmation",
+    "previewOnly": "Showing a preview of the output",
+    "loadFull": "Load full output",
+    "loadFailed": "Loading failed. Try again.",
+    "status": {
+      "pending": "Queued",
+      "running": "Working",
+      "completed": "Completed",
+      "error": "Needs attention",
+      "canceled": "Canceled",
+      "waiting": "Awaiting confirmation",
+      "unknown": "Result not recorded"
+    }
   }
 }

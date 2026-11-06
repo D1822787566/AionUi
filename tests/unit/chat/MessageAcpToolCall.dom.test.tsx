@@ -8,7 +8,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
-import type { FileChangesPanelProps } from '@/renderer/components/base/FileChangesPanel';
+import type { ProcessFile } from '@/renderer/pages/conversation/Messages/components/ProcessTrace';
 import MessageAcpToolCall from '@/renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
 
 const mockDownloadFileFromPath = vi.fn().mockResolvedValue(undefined);
@@ -51,14 +51,14 @@ vi.mock('@renderer/components/Markdown', () => ({
   default: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@/renderer/components/base/FileChangesPanel', () => ({
+vi.mock('@/renderer/pages/conversation/Messages/components/ProcessTrace/ProcessFiles', () => ({
   __esModule: true,
-  default: ({ title, files }: FileChangesPanelProps) => (
+  default: ({ files }: { files: ProcessFile[] }) => (
     <div
       data-testid='file-changes-panel'
-      data-title={title}
-      data-insertions={files[0]?.insertions ?? 0}
-      data-deletions={files[0]?.deletions ?? 0}
+      data-title={files[0]?.path.split(/[/\\]/).pop()}
+      data-insertions={files[0]?.added ?? 0}
+      data-deletions={files[0]?.removed ?? 0}
     />
   ),
 }));

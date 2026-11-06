@@ -782,5 +782,33 @@
     "progress": "{{completed}}/{{total}}",
     "expand": "展開計劃",
     "collapse": "收合計劃"
+  },
+  "processTrace": {
+    "thinking": "思考",
+    "thoughts": "{{count}} 段思考",
+    "calls": "{{count}} 次工具呼叫",
+    "title": "執行過程",
+    "calls_one": "{{count}} 次工具呼叫",
+    "calls_other": "{{count}} 次工具呼叫",
+    "earlier": "查看更早的 {{count}} 個步驟",
+    "recent": "僅顯示最近步驟",
+    "input": "輸入",
+    "output": "輸出",
+    "failure": "這一步執行失敗",
+    "files": "修改的檔案",
+    "openDiff": "查看 {{file}} 的修改",
+    "waitingHint": "等待你確認後繼續",
+    "previewOnly": "目前顯示輸出摘要",
+    "loadFull": "載入完整輸出",
+    "loadFailed": "載入失敗，請重試",
+    "status": {
+      "pending": "等待執行",
+      "running": "正在處理",
+      "completed": "已完成",
+      "error": "需要關注",
+      "canceled": "已取消",
+      "waiting": "等待確認",
+      "unknown": "結果未記錄"
+    }
   }
 }

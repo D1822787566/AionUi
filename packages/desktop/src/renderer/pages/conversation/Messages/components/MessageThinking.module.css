@@ -3,7 +3,7 @@
   margin: 4px 0;
 }
 
-.header {
+.header:global(.arco-btn) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -12,6 +12,10 @@
   cursor: pointer;
   user-select: none;
   line-height: 1;
+  height: 30px;
+  padding: 3px 5px;
+  border-radius: 6px;
+  max-width: 100%;
 }
 
 .header:hover {
@@ -45,21 +49,17 @@
 }
 
 .body {
-  color: #86909c;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
   padding: 10px 14px;
   margin-top: 6px;
   margin-inline-start: 20px;
-  background: color-mix(in srgb, var(--aou-1) 50%, #fff);
-  border-radius: 8px;
+  border-inline-start: 1px solid var(--border-base);
   white-space: pre-wrap;
   word-break: break-word;
-  overflow: hidden;
-}
-
-:global([data-theme='dark']) .body {
-  background: var(--aou-1);
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .collapsed {
@@ -68,6 +68,8 @@
 
 .summary {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @media (max-width: 767px) {

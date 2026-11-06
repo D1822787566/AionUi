@@ -8,6 +8,7 @@ import React, { type PropsWithChildren } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageAcpToolCall, IMessageText, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import type { ProcessMessage } from '@/renderer/pages/conversation/Messages/components/ProcessTrace/adapter';
 import type { MessageFileChangesProps } from '@/renderer/pages/conversation/Messages/MessageFileChanges';
 import {
   MessageListLoadingProvider,
@@ -137,8 +138,21 @@ vi.mock('@/renderer/pages/conversation/Messages/components/MessageSkillSuggest',
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageToolGroupSummary', () => ({
-  default: ({ messages }: { messages: Array<IMessageToolGroup | IMessageAcpToolCall> }) => (
-    <div data-testid='tool-summary'>{messages.map((message) => message.id).join(',')}</div>
+  default: ({
+    messages,
+    entries,
+  }: {
+    messages: ProcessMessage[];
+    entries?: Array<{ type: string; content?: React.ReactNode }>;
+  }) => (
+    <div data-testid='tool-summary'>
+      {messages.map((message) => message.id).join(',')}
+      {entries
+        ?.filter((entry) => entry.type === 'process_content')
+        .map((entry, index) => (
+          <React.Fragment key={index}>{entry.content}</React.Fragment>
+        ))}
+    </div>
   ),
 }));
 
@@ -395,6 +409,115 @@ describe('MessageList', () => {
     expect(screen.getByTestId('msgtext-text-c').getAttribute('data-copy-row')).toBe('true');
   });
 
+  it('groups actual thinking and tool messages into one process while preserving text boundaries', () => {
+    const messages = [
+      {
+        id: 'reason-1',
+        msg_id: 'r1',
+        type: 'thinking',
+        position: 'left',
+        content: { content: 'plan', status: 'done' },
+        created_at: 1,
+      },
+      {
+        id: 'read-1',
+        type: 'tool_call',
+        position: 'left',
+        content: { call_id: 'read', name: 'Read', status: 'completed', args: {} },
+        created_at: 2,
+      },
+      {
+        id: 'reason-2',
+        msg_id: 'r2',
+        type: 'thinking',
+        position: 'left',
+        content: { content: 'check', status: 'thinking' },
+        created_at: 3,
+      },
+      { id: 'answer', type: 'text', position: 'left', content: { content: 'answer' }, created_at: 4 },
+    ] as TMessage[];
+    render(<MessageList />, { wrapper: ({ children }) => <Wrapper messages={messages}>{children}</Wrapper> });
+    expect(screen.getByTestId('tool-summary')).toHaveTextContent('reason-1,read-1,reason-2');
+    expect(screen.queryByText('thinking')).not.toBeInTheDocument();
+    expect(screen.getByTestId('msgtext-answer')).toBeInTheDocument();
+  });
+
+  it('keeps query_db calls and intervening text in a single turn process', () => {
+    const messages = [
+      { id: 'u', type: 'text', position: 'right', content: { content: 'returns this month' } },
+      { id: 'r1', type: 'thinking', content: { content: 'inspect', status: 'done' } },
+      { id: 'empty', type: 'text', content: { content: '' } },
+      {
+        id: 'q1',
+        type: 'tool_call',
+        content: {
+          call_id: 'q1',
+          name: 'query_db',
+          status: 'completed',
+          args: { sql: 'SELECT COUNT(*) FROM returns' },
+        },
+      },
+      { id: 'note', type: 'text', content: { content: 'Checking another date field.' } },
+      {
+        id: 'q2',
+        type: 'tool_call',
+        content: {
+          call_id: 'q2',
+          name: 'query_db',
+          status: 'completed',
+          args: { query: 'SELECT COUNT(*) FROM returns WHERE applied_at IS NOT NULL' },
+        },
+      },
+      { id: 'answer', type: 'text', content: { content: '15 returns.' } },
+    ].map((message, index) =>
+      Object.assign(message, {
+        conversation_id: 'conversation-1',
+        position: message.position ?? 'left',
+        created_at: index + 1,
+      })
+    ) as TMessage[];
+    render(<MessageList />, { wrapper: ({ children }) => <Wrapper messages={messages}>{children}</Wrapper> });
+    expect(screen.getAllByTestId('tool-summary')).toHaveLength(1);
+    expect(screen.getByTestId('tool-summary')).toHaveTextContent('r1,q1,q2');
+    expect(screen.getByTestId('msgtext-note')).toBeInTheDocument();
+    expect(screen.getByTestId('msgtext-answer')).toBeInTheDocument();
+  });
+
+  it.each(['', ' \n\t ', '<think>Internal reasoning only</think>', '[SKILL_SUGGEST]internal[/SKILL_SUGGEST]'])(
+    'omits empty text layout inside and outside a process, then shows streamed text (%j)',
+    (content) => {
+      const messages = [
+        { id: 'before', type: 'text', content: { content } },
+        { id: 'reason', type: 'thinking', content: { content: 'Original reasoning', status: 'done' } },
+        { id: 'empty-inside', type: 'text', content: { content } },
+        { id: 'last-reason', type: 'thinking', content: { content: 'More reasoning', status: 'done' } },
+        { id: 'answer', type: 'text', content: { content: 'Final answer' } },
+      ].map((message, index) =>
+        Object.assign(message, {
+          conversation_id: 'conversation-1',
+          position: 'left',
+          created_at: index + 1,
+        })
+      ) as TMessage[];
+      const { container } = render(
+        <Wrapper messages={messages}>
+          <MessageList />
+          <ReplaceMessagesButton
+            messages={messages.map((message) =>
+              message.id === 'empty-inside'
+                ? (Object.assign({}, message, { content: { content: 'A real progress note' } }) as IMessageText)
+                : message
+            )}
+          />
+        </Wrapper>
+      );
+      expect(container.querySelector('#message-before, #message-empty-inside')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText('replace messages'));
+      expect(screen.getByTestId('msgtext-empty-inside')).toHaveTextContent('A real progress note');
+      expect(screen.getByTestId('msgtext-answer')).toHaveTextContent('Final answer');
+    }
+  );
+
   it('withholds the streaming turn copy row but keeps earlier finished turns', () => {
     mockIsProcessing = true;
     // Turn 1 finished (text-a), then a user message, then turn 2 still streaming (text-b).
@@ -449,7 +572,7 @@ describe('MessageList', () => {
     });
 
     expect(screen.getByTestId('acp-tool-call')).toHaveAttribute('data-diff-count', '2');
-    expect(screen.queryByTestId('tool-summary')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tool-summary')).toBeInTheDocument();
   });
 
   it('renders a newly created file when only new text is present', () => {
@@ -462,7 +585,7 @@ describe('MessageList', () => {
     });
 
     expect(screen.getByTestId('acp-tool-call')).toHaveAttribute('data-diff-count', '1');
-    expect(screen.queryByTestId('tool-summary')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tool-summary')).toBeInTheDocument();
   });
 
   it('keeps ACP calls without diffs in View Steps', () => {
@@ -541,7 +664,7 @@ describe('MessageList', () => {
     fireEvent.click(screen.getByText('replace messages'));
 
     expect(screen.getByTestId('acp-tool-call')).toHaveAttribute('data-message-id', completedMessage.id);
-    expect(screen.queryByTestId('tool-summary')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tool-summary')).toBeInTheDocument();
   });
 
   it('preserves surrounding tool summaries when an ACP edit contains multiple diffs', () => {
@@ -560,11 +683,8 @@ describe('MessageList', () => {
     });
 
     expect(screen.getByTestId('acp-tool-call')).toHaveAttribute('data-diff-count', '2');
-    expect(screen.getAllByTestId('tool-summary')).toHaveLength(2);
-    expect(screen.getAllByTestId('tool-summary').map((item) => item.textContent)).toEqual([
-      'acp-read-1',
-      'acp-execute-1',
-    ]);
+    expect(screen.getAllByTestId('tool-summary')).toHaveLength(1);
+    expect(screen.getByTestId('tool-summary')).toHaveTextContent('acp-read-1,acp-execute-1');
   });
 
   it('preserves the legacy single WriteFile summary path', () => {
@@ -588,7 +708,7 @@ describe('MessageList', () => {
 
     expect(screen.getByTestId('file-changes')).toHaveAttribute('data-file-count', '1');
     expect(parseDiffMock).toHaveBeenCalledWith('diff --git a/file.ts b/file.ts\n-old\n+new', '/workspace/file.ts');
-    expect(screen.queryByTestId('tool-summary')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tool-summary')).toBeInTheDocument();
   });
 
   it('aggregates legacy groups containing only structured WriteFile results', () => {
@@ -623,7 +743,23 @@ describe('MessageList', () => {
 
     expect(screen.getByTestId('file-changes')).toHaveAttribute('data-file-count', '2');
     expect(parseDiffMock).toHaveBeenCalledTimes(2);
-    expect(screen.queryByTestId('tool-summary')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tool-summary')).toBeInTheDocument();
+  });
+
+  it('retains original interactive legacy confirmations inside the turn process', () => {
+    const message = createToolGroup([
+      {
+        call_id: 'confirm-1',
+        description: 'Run command',
+        name: 'Shell',
+        render_output_as_markdown: false,
+        status: 'Confirming',
+        confirmationDetails: { type: 'exec', title: 'Run command', command: 'git status', rootCommand: 'git' },
+      },
+    ]);
+    render(<MessageList />, { wrapper: ({ children }) => <Wrapper messages={[message]}>{children}</Wrapper> });
+    expect(screen.getByTestId('tool-group')).toBeInTheDocument();
+    expect(screen.getByTestId('tool-summary')).toBeInTheDocument();
   });
 
   it('keeps mixed legacy tool groups in View Steps without dropping non-file tools', () => {

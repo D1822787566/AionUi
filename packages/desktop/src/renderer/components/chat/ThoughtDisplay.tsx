@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Tag, Spin, Button } from '@arco-design/web-react';
-import React, { useMemo, useEffect, useState, useRef } from 'react';
+import { Spin, Button } from '@arco-design/web-react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Brain, Right } from '@icon-park/react';
+import styles from './ThoughtDisplay.module.css';
 
 export interface ThoughtData {
   subject: string;
@@ -29,7 +31,7 @@ type ThoughtDisplayProps = {
 
 const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   thought,
-  style = 'default',
+  style: _style = 'default',
   running = false,
   statusText,
   onStop: _onStop,
@@ -38,6 +40,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   externalElapsedSource,
 }) => {
   const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
 
   // Format elapsed time with localized units
   const formatElapsedTime = (seconds: number): string => {
@@ -107,76 +110,39 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
     return () => clearInterval(timer);
   }, [externalElapsedSource, startedAtMs, running, thought?.subject]);
 
-  // Calculate final style based on style prop. The theme-aware gradient is
-  // resolved via the `--thought-gradient` token so it follows light/dark and any
-  // custom theme override.
-  const containerStyle = useMemo(() => {
-    const background = 'var(--thought-gradient)';
+  if (!thought?.subject && !running && !statusText) return null;
+  const description = thought?.description && thought.description !== thought.subject ? thought.description : '';
 
-    if (style === 'compact') {
-      return {
-        background,
-        marginBottom: '8px',
-        maxHeight: '100px',
-        overflow: 'scroll' as const,
-      };
-    }
-
-    return {
-      background,
-    };
-  }, [style]);
-
-  // Hide when not running and no thought data
-  if (!thought?.subject && !running && !statusText) {
-    return null;
-  }
-
-  // Loading-only mode: running without thought data (used by ACP when thinking is inline)
-  if (!thought?.subject && (running || statusText)) {
-    return (
-      <div
-        className='relative z-1 mb--20px pb-30px px-10px py-10px rd-t-20px text-14px lh-20px text-t-primary flex items-center gap-8px'
-        style={containerStyle}
-      >
-        {running && <Spin size={14} />}
-        {/* Left block fills the row and truncates long text (tooltip shows the
-            full message); the retry button stays pinned on the right and never
-            shrinks, so a long/localized status can't push it out of a narrow
-            parallel-view column. */}
-        <span className='text-t-secondary min-w-0 flex-1 truncate' title={statusText}>
-          {statusText ?? t('conversation.chat.processing')}
-          {showElapsed && <span className='ms-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>}
-        </span>
+  return (
+    <div className={styles.root}>
+      <div className={styles.row}>
+        {running ? <Spin size={12} /> : <Brain size={14} />}
+        {thought?.subject ? (
+          <Button
+            type='text'
+            className={styles.summary}
+            aria-expanded={expanded}
+            disabled={!description}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            <span className={styles.label}>{thought.subject}</span>
+            {description && <span className={styles.chip}>{description}</span>}
+            {description && <Right size={12} className={expanded ? styles.rotated : ''} />}
+          </Button>
+        ) : (
+          <span className='text-t-secondary min-w-0 flex-1 truncate' title={statusText}>
+            {statusText ?? t('conversation.chat.processing')}
+          </span>
+        )}
+        {showElapsed && <span className={styles.elapsed}>({formatElapsedTime(elapsedTime)})</span>}
         {onRetryStart && (
           <Button className='flex-shrink-0' size='mini' type='text' onClick={onRetryStart}>
             {t('team.work.retryStart', { defaultValue: 'Retry start' })}
           </Button>
         )}
       </div>
-    );
-  }
-
-  // Full thought display mode: used by non-ACP platforms that still pass thought data
-  const showDescription = thought?.description && thought.description !== thought.subject;
-
-  return (
-    <div
-      className='relative z-1 mb--20px pb-30px px-10px py-10px rd-t-20px text-14px lh-20px text-t-primary'
-      style={containerStyle}
-    >
-      <div className='flex items-center gap-8px'>
-        {running && <Spin size={14} />}
-        <Tag color='arcoblue' size='small'>
-          {thought?.subject}
-        </Tag>
-        {showDescription && <span className='flex-1 truncate'>{thought?.description}</span>}
-        {showElapsed && (
-          <span className='text-t-tertiary text-12px whitespace-nowrap'>({formatElapsedTime(elapsedTime)})</span>
-        )}
-      </div>
+      {description && expanded && <div className={styles.detail}>{description}</div>}
     </div>
   );
 };
-
 export default ThoughtDisplay;
