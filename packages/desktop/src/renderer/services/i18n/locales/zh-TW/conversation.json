@@ -433,7 +433,13 @@
       "terminal": "終端機",
       "explorer": "檔案總管",
       "browser": "瀏覽器"
-    }
+    },
+    "switchSuccess": "Project directory updated",
+    "chooseDirectory": "Choose project directory",
+    "restoreDefault": "Restore default workspace",
+    "openOriginalWorkspace": "Open original workspace",
+    "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
+    "defaultWorkspace": "Default"
   },
   "minimap": {
     "searchAria": "搜尋對話",

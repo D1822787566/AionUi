@@ -11,12 +11,14 @@ import { useCronJobsMap } from '@/renderer/pages/cron';
 import { restrictToVerticalAxis } from '@/renderer/utils/ui/dndModifiers';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Empty, Input, Menu, Message, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderClose, MoreOne, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ipcBridge } from '@/common';
+import { emitter } from '@/renderer/utils/emitter';
 
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
@@ -210,9 +212,35 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     ]
   );
 
+  const moveToWorkspace = useCallback(
+    async (conversation: TChatConversation, workspace: string) => {
+      if (conversation.status === 'running' || conversation.status === 'pending') {
+        Message.warning(
+          t('conversation.workspace.busyCannotSwitch', {
+            defaultValue: 'The current agent is working; finish this task before changing the directory.',
+          })
+        );
+        return;
+      }
+      try {
+        await ipcBridge.conversation.switchWorkspace.invoke({
+          id: conversation.id,
+          expected_workspace: conversation.extra.workspace,
+          workspace,
+        });
+        emitter.emit('chat.history.refresh');
+      } catch (error) {
+        Message.error(error instanceof Error ? error.message : String(error));
+      }
+    },
+    [t]
+  );
+
   const renderConversation = (conversation: TChatConversation, dimIcon = false) => {
     const rowProps = getConversationRowProps(conversation);
-    return <ConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} />;
+    return (
+      <ConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} onMoveToWorkspace={moveToWorkspace} />
+    );
   };
 
   // Collect all sortable IDs for the pinned section
@@ -443,6 +471,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       siderCollapsed={collapsed}
                       stickyHeader
                       stickyTop={28}
+                      onDropConversation={(conversationId) => {
+                        const conversation = conversations.find((item) => item.id === conversationId);
+                        if (conversation) void moveToWorkspace(conversation, group.workspace);
+                      }}
                       header={
                         <span className='text-14px font-[500] truncate flex-1 text-t-primary min-w-0'>
                           {group.displayName}

@@ -433,7 +433,13 @@
       "terminal": "Terminal",
       "explorer": "Explorateur de fichiers",
       "browser": "Navigateur"
-    }
+    },
+    "switchSuccess": "Project directory updated",
+    "chooseDirectory": "Choose project directory",
+    "restoreDefault": "Restore default workspace",
+    "openOriginalWorkspace": "Open original workspace",
+    "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
+    "defaultWorkspace": "Default"
   },
   "minimap": {
     "searchAria": "Rechercher dans la conversation",

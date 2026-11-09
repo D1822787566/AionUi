@@ -334,6 +334,16 @@ export const conversation = {
       };
     }
   ),
+  switchWorkspace: withResponseMap(
+    httpPost<
+      TChatConversation,
+      { id: string; expected_workspace: string; project_id?: string; workspace?: string; restore_default?: boolean }
+    >(
+      (p) => `/api/conversations/${encodeURIComponent(p.id)}/project-directory`,
+      ({ id: _id, ...body }) => body
+    ),
+    fromApiConversation
+  ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   /**
    * Fork the conversation at a message (inclusive) into a new conversation.

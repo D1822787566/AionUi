@@ -30,6 +30,8 @@ import type { AionrsModelSelection } from './useAionrsModelSelection';
 const AionrsChat: React.FC<{
   conversation_id: string;
   workspace: string;
+  default_workspace?: string;
+  project_id?: string;
   modelSelection: AionrsModelSelection;
   session_mode?: string;
   cron_job_id?: string;
@@ -45,6 +47,8 @@ const AionrsChat: React.FC<{
 }> = ({
   conversation_id,
   workspace,
+  default_workspace,
+  project_id,
   modelSelection,
   session_mode,
   cron_job_id,
@@ -94,6 +98,9 @@ const AionrsChat: React.FC<{
           <ConversationPlanBar conversation_id={conversation_id} />
           <AionrsSendBox
             conversation_id={conversation_id}
+            workspace={workspace}
+            default_workspace={default_workspace}
+            project_id={project_id}
             modelSelection={modelSelection}
             session_mode={session_mode}
             agent_name={agent_name}

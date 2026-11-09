@@ -74,6 +74,7 @@ export type ConversationRowProps = {
   dimIcon?: boolean;
   /** Hover-reveal drag handle overlaying the leading icon; supplied by the sortable wrapper for reorderable (pinned) rows. */
   dragHandle?: ReactNode;
+  onMoveToWorkspace?: (conversation: TChatConversation, workspace: string) => void;
 };
 
 export type WorkspaceGroupedHistoryProps = {

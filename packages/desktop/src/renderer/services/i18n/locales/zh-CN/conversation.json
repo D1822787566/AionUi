@@ -433,7 +433,13 @@
       "terminal": "终端",
       "explorer": "文件资源管理器",
       "browser": "浏览器"
-    }
+    },
+    "switchSuccess": "项目目录已更新",
+    "chooseDirectory": "选择项目目录",
+    "restoreDefault": "恢复默认工作区",
+    "openOriginalWorkspace": "打开原工作区",
+    "busyCannotSwitch": "当前任务进行中，暂不能切换项目目录。",
+    "defaultWorkspace": "默认"
   },
   "minimap": {
     "searchAria": "搜索会话",

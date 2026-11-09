@@ -433,7 +433,13 @@
       "terminal": "터미널",
       "explorer": "파일 탐색기",
       "browser": "브라우저"
-    }
+    },
+    "switchSuccess": "Project directory updated",
+    "chooseDirectory": "Choose project directory",
+    "restoreDefault": "Restore default workspace",
+    "openOriginalWorkspace": "Open original workspace",
+    "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
+    "defaultWorkspace": "Default"
   },
   "minimap": {
     "searchAria": "대화 검색",

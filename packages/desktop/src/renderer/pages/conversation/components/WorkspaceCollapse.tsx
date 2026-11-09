@@ -27,6 +27,7 @@ interface WorkspaceCollapseProps {
   stickyHeader?: boolean;
   /** 吸顶时距滚动容器顶部的偏移(px)，用于让位给上方常驻的分区标题 */
   stickyTop?: number;
+  onDropConversation?: (conversationId: string) => void;
 }
 
 /**
@@ -42,6 +43,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
   trailing,
   stickyHeader = false,
   stickyTop,
+  onDropConversation,
 }) => {
   // 侧栏折叠时，强制展开内容并隐藏头部
   const showContent = siderCollapsed || expanded;
@@ -60,6 +62,19 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
           <div
             className='flex items-center gap-8px h-34px ps-10px pe-8px cursor-pointer hover:bg-fill-3 rd-8px transition-colors min-w-0 group'
             onClick={onToggle}
+            onDragOver={(event) => {
+              if (onDropConversation && event.dataTransfer.types.includes('application/x-aionui-conversation')) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+              }
+            }}
+            onDrop={(event) => {
+              const conversationId = event.dataTransfer.getData('application/x-aionui-conversation');
+              if (conversationId && onDropConversation) {
+                event.preventDefault();
+                onDropConversation(conversationId);
+              }
+            }}
           >
             <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
               {expanded ? (

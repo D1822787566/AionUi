@@ -48,7 +48,7 @@ import { type ChatFileRef, isChatFileRef, uploadFileRef } from '@/common/types/c
 import { localSelectionItems, mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { collectChatFileRefs, splitChatFileRefs } from '@/renderer/utils/file/messageFiles';
 import type { AgentModeOption } from '@/renderer/utils/model/agentTypes';
-import { Button, Message, Tag } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message, Tag, Tooltip } from '@arco-design/web-react';
 import { Brain, Lightning, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -69,6 +69,94 @@ const toModeLabel = (value: string): string =>
     .split('_')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+
+const ConversationWorkspaceSelector: React.FC<{
+  conversationId: string;
+  workspace: string;
+  defaultWorkspace?: string;
+  projectId?: string;
+  disabled: boolean;
+}> = ({ conversationId, workspace, defaultWorkspace, projectId, disabled }) => {
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  useEffect(() => {
+    let alive = true;
+    void ipcBridge.sidebar.get.invoke({ limit: 100 }).then((result) => {
+      if (!alive) return;
+      const next = result.groups
+        .map((group) => group.scope)
+        .filter((scope): scope is { type: 'project'; project_id: string; name: string } => scope.type === 'project')
+        .map((scope) => ({ id: scope.project_id, name: scope.name }));
+      setProjects(next);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const name = workspace.split(/[\\/]/).pop() || workspace;
+  const update = useCallback(
+    async (patch: { project_id?: string; restore_default?: boolean; workspace?: string }) => {
+      if (disabled || loading) return;
+      setLoading(true);
+      try {
+        await ipcBridge.conversation.switchWorkspace.invoke({
+          id: conversationId,
+          expected_workspace: workspace,
+          ...patch,
+        });
+        emitter.emit('chat.history.refresh');
+        Message.success(t('conversation.workspace.switchSuccess', { defaultValue: 'Project directory updated' }));
+      } catch (error) {
+        Message.error(error instanceof Error ? error.message : String(error));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [conversationId, disabled, loading, t]
+  );
+  const browse = useCallback(async () => {
+    const dirs = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] });
+    if (dirs?.[0]) await update({ workspace: dirs[0] });
+  }, [update]);
+  const menu = (
+    <Menu>
+      {projects.map((project) => (
+        <Menu.Item key={`project:${project.id}`} onClick={() => void update({ project_id: project.id })}>
+          {project.name}
+        </Menu.Item>
+      ))}
+      <Menu.Item key='browse' onClick={() => void browse()}>
+        {t('conversation.workspace.chooseDirectory', { defaultValue: 'Choose project directory' })}
+      </Menu.Item>
+      {projectId && (
+        <Menu.Item key='default' onClick={() => void update({ restore_default: true })}>
+          {t('conversation.workspace.restoreDefault', { defaultValue: 'Restore default workspace' })}
+        </Menu.Item>
+      )}
+      <Menu.Item key='open' onClick={() => void ipcBridge.shell.showItemInFolder.invoke(defaultWorkspace || workspace)}>
+        {t('conversation.workspace.openOriginalWorkspace', { defaultValue: 'Open current workspace' })}
+      </Menu.Item>
+    </Menu>
+  );
+  return (
+    <Tooltip
+      content={
+        disabled
+          ? t('conversation.workspace.busyCannotSwitch', {
+              defaultValue: 'The current agent is working; finish this task before changing the directory.',
+            })
+          : workspace
+      }
+    >
+      <Dropdown droplist={menu} trigger='click' disabled={disabled || loading}>
+        <Button size='mini' type='secondary' loading={loading} disabled={disabled} className='max-w-180px truncate'>
+          {projectId ? name : t('conversation.workspace.defaultWorkspace', { defaultValue: 'Default' })}
+        </Button>
+      </Dropdown>
+    </Tooltip>
+  );
+};
 
 const modeOptionsFromCapabilities = (modes: string[]): AgentModeOption[] =>
   modes.map((value) => ({ value, label: toModeLabel(value) }));
@@ -118,12 +206,25 @@ const useSendBoxDraft = (conversation_id: string) => {
 
 const AionrsSendBox: React.FC<{
   conversation_id: string;
+  workspace: string;
+  default_workspace?: string;
+  project_id?: string;
   modelSelection: AionrsModelSelection;
   session_mode?: string;
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: ChatFileRef[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage, teamRuntime }) => {
+}> = ({
+  conversation_id,
+  workspace,
+  default_workspace,
+  project_id,
+  modelSelection,
+  session_mode,
+  agent_name,
+  teamSendMessage,
+  teamRuntime,
+}) => {
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
@@ -789,6 +890,15 @@ const AionrsSendBox: React.FC<{
         }
         onStop={effectiveHandleStop}
         className='z-10'
+        topRightOverlay={
+          <ConversationWorkspaceSelector
+            conversationId={conversation_id}
+            workspace={workspace}
+            defaultWorkspace={default_workspace}
+            projectId={project_id}
+            disabled={isBusy || Boolean(teamRuntime)}
+          />
+        }
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
         supportedExts={allSupportedExts}
