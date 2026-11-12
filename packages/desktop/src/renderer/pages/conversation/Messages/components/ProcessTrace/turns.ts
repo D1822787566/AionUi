@@ -19,21 +19,32 @@ export type ProcessTurn<T> = {
   sourceMessageIds: string[];
 };
 
-/** Preserve the original timeline inside a turn; leave trailing answer text outside. */
+const PROCESS_ITEM_TYPES = new Set([
+  'tool_summary',
+  'file_summary',
+  'acp_tool_call',
+  'tool_group',
+  'permission',
+  'acp_permission',
+  'ask',
+]);
+
+/** Preserve the original timeline inside a turn; leave the final reply outside. */
 export function groupProcessTimeline<T extends TimelineItem>(items: T[]): Array<T | ProcessTurn<T>> {
   const result: Array<T | ProcessTurn<T>> = [];
   let pending: T[] = [];
   let turnId: string | undefined;
   const flush = () => {
-    const first = pending.findIndex((item) =>
-      ['tool_summary', 'file_summary', 'acp_tool_call', 'tool_group', 'permission', 'acp_permission', 'ask'].includes(
-        item.type
-      )
-    );
+    const first = pending.findIndex((item) => PROCESS_ITEM_TYPES.has(item.type));
     if (first < 0) result.push(...pending);
     else {
-      let last = pending.length - 1;
-      while (last > first && (pending[last].type === 'text' || pending[last].type === 'artifact')) last--;
+      // A final text can be followed by a status/tips/artifact row. Looking
+      // only at the last array item would pull that final answer into the
+      // process card. Cut at the last actual execution item instead.
+      const last = pending.reduce(
+        (lastIndex, item, index) => (PROCESS_ITEM_TYPES.has(item.type) ? index : lastIndex),
+        first
+      );
       const entries = pending.slice(first, last + 1);
       result.push(
         ...pending.slice(0, first),

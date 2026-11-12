@@ -438,12 +438,18 @@
       "explorer": "Провідник",
       "browser": "Браузер"
     },
-    "switchSuccess": "Project directory updated",
+    "switchSuccess": "Теку проєкту збережено для наступного завдання. Поточні завдання продовжаться в попередній теці.",
     "chooseDirectory": "Choose project directory",
     "restoreDefault": "Restore default workspace",
     "openOriginalWorkspace": "Open original workspace",
     "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
-    "defaultWorkspace": "Default"
+    "defaultWorkspace": "Default",
+    "actions": "Дії",
+    "noProjects": "Проєктів поки немає",
+    "defaultWorkspaceGroup": "Типова робоча область",
+    "defaultDropHint": "Перетягніть розмову сюди, щоб повернути її до типової робочої області",
+    "dropTarget": "Перемістити до {{name}}",
+    "moving": "Переміщення розмови…"
   },
   "minimap": {
     "searchAria": "Пошук по діалогу",

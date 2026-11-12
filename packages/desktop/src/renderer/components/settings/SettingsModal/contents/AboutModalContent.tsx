@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Divider, Typography, Button, Switch, Message } from '@arco-design/web-react';
+import { Divider, Typography, Button, Switch, Progress } from '@arco-design/web-react';
 import { Github, Right } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,17 +12,13 @@ import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 import FeedbackReportModal from './FeedbackReportModal';
-import { ipcBridge } from '@/common';
-import { getIncludePrerelease, runUpdateCheck } from '@/renderer/components/settings/checkForUpdatesShared';
-import { UPDATE_AVAILABLE_EVENT } from '@/renderer/components/settings/useUpdateNotificationController';
+import MarkdownView from '@/renderer/components/Markdown';
+import {
+  formatUpdateSize,
+  useUpdateNotificationController,
+} from '@/renderer/components/settings/useUpdateNotificationController';
 import { IS_DISCONTINUED_BUILD } from '@/renderer/utils/discontinuedBuild';
 import { OPEN_MIGRATION_DIALOG_EVENT } from '@/renderer/components/settings/UpdateMigrationDialog';
-import {
-  getUpdateReadyState,
-  setUpdateReadyState,
-  subscribeUpdateReadyState,
-  type UpdateReadyState,
-} from '@/renderer/components/settings/updateReadyState';
 
 // __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
 // repo-root package.json. The previous `import packageJson from
@@ -42,15 +38,12 @@ const AboutModalContent: React.FC = () => {
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [updateReadyState, setLocalUpdateReadyState] = useState<UpdateReadyState>(() => getUpdateReadyState());
-  const [checking, setChecking] = useState(false);
+  const { state: updateState, versionLabel, actions: updateActions } = useUpdateNotificationController();
 
   useEffect(() => {
     const saved = localStorage.getItem('update.includePrerelease');
     setIncludePrerelease(saved === 'true');
   }, []);
-
-  useEffect(() => subscribeUpdateReadyState(setLocalUpdateReadyState), []);
 
   const handlePrereleaseChange = (val: boolean) => {
     setIncludePrerelease(val);
@@ -65,7 +58,7 @@ const AboutModalContent: React.FC = () => {
     }
   };
 
-  const checkUpdate = async () => {
+  const checkUpdate = () => {
     // Discontinued build: guide to the AionPro website instead of any in-app
     // version detection. Dead-branched out of normal builds by the flag.
     if (IS_DISCONTINUED_BUILD) {
@@ -73,40 +66,77 @@ const AboutModalContent: React.FC = () => {
       return;
     }
 
-    if (updateReadyState.ready) {
-      if (updateReadyState.preparing) return;
-      if (updateReadyState.filePath) {
-        void ipcBridge.shell.openFile.invoke(updateReadyState.filePath);
-        return;
-      }
-      setUpdateReadyState({ ...updateReadyState, preparing: true });
-      void ipcBridge.autoUpdate.quitAndInstall.invoke().catch(() => {
-        Message.error(t('update.errors.prepareInstallFailed'));
-        setUpdateReadyState({ ...updateReadyState, preparing: false });
-      });
+    if (updateState.status === 'downloaded') {
+      updateActions.quitAndInstall();
       return;
     }
+    if (updateState.status === 'preparing-install' || updateState.status === 'downloading') return;
+    void updateActions.checkForUpdates();
+  };
 
-    if (checking) return;
-    setChecking(true);
-    try {
-      const outcome = await runUpdateCheck({
-        includePrerelease: getIncludePrerelease(),
-        fallbackVersion: __APP_VERSION__,
-        checkFailedLabel: t('update.checkFailed'),
-      });
-      if (outcome.kind === 'available') {
-        // Only reveal the bottom-right card once an update is confirmed; hand
-        // over the already-fetched outcome so the card skips the checking flash.
-        window.dispatchEvent(new CustomEvent(UPDATE_AVAILABLE_EVENT, { detail: outcome }));
-      } else if (outcome.kind === 'upToDate') {
-        Message.info(t('update.alreadyLatest'));
-      } else {
-        Message.error(outcome.message || t('update.checkFailed'));
-      }
-    } finally {
-      setChecking(false);
+  const releaseNotes = updateState.updateInfo?.body || updateState.autoUpdateInfo?.releaseNotes || '';
+  const updateBusy = updateState.status === 'checking' || updateState.status === 'preparing-install';
+  const renderUpdateDetails = () => {
+    if (updateState.status === 'idle') return null;
+    if (updateState.status === 'checking') return <Typography.Text>{t('update.checking')}</Typography.Text>;
+    if (updateState.status === 'upToDate') return <Typography.Text>{t('update.upToDateTitle')}</Typography.Text>;
+    if (updateState.status === 'error') {
+      return (
+        <div className='flex flex-col gap-8px w-full'>
+          <Typography.Text className='text-[rgb(var(--danger-6))]'>{updateState.errorMsg}</Typography.Text>
+          <Button size='small' onClick={() => void updateActions.checkForUpdates()}>
+            {t('common.retry')}
+          </Button>
+        </div>
+      );
     }
+    if (updateState.status === 'downloading') {
+      return (
+        <div className='w-full'>
+          <Progress percent={updateState.progress.percent} />
+          <div className='flex justify-between text-12px text-t-tertiary mt-6px'>
+            <span>{updateState.progress.percent}%</span>
+            <span>
+              {formatUpdateSize(updateState.progress.transferred)} / {formatUpdateSize(updateState.progress.total)}
+            </span>
+            <span>{updateState.progress.speed}</span>
+          </div>
+        </div>
+      );
+    }
+    if (updateState.status === 'downloaded' || updateState.status === 'preparing-install') {
+      return (
+        <div className='flex items-center justify-between gap-8px w-full'>
+          <Typography.Text>{t('update.downloadCompleteTitle')}</Typography.Text>
+          <Button
+            type='primary'
+            size='small'
+            loading={updateState.status === 'preparing-install'}
+            onClick={updateActions.quitAndInstall}
+          >
+            {updateState.status === 'preparing-install' ? t('update.preparingInstall') : t('update.restartNow')}
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className='flex flex-col gap-10px w-full'>
+        {updateState.releaseNotesStatus === 'loading' ? (
+          <Typography.Text>{t('update.releaseNotesLoading')}</Typography.Text>
+        ) : updateState.releaseNotesStatus === 'failed' ? (
+          <Typography.Text>{t('update.releaseNotesFailed')}</Typography.Text>
+        ) : releaseNotes ? (
+          <div className='max-h-180px overflow-y-auto text-13px text-t-secondary leading-relaxed custom-scrollbar'>
+            <MarkdownView allowHtml>{releaseNotes}</MarkdownView>
+          </div>
+        ) : (
+          <Typography.Text>{t('update.noReleaseNotes')}</Typography.Text>
+        )}
+        <Button type='primary' size='small' onClick={updateActions.startDownload}>
+          {t('update.downloadButton')}
+        </Button>
+      </div>
+    );
   };
 
   const linkItems: LinkItem[] = [
@@ -173,21 +203,29 @@ const AboutModalContent: React.FC = () => {
 
             {/* Check Update Section */}
             {isElectron && (
-              <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
+              <div
+                data-testid='update-center'
+                className='flex flex-col items-center gap-12px w-full max-w-420px bg-fill-2 p-16px rounded-lg'
+              >
+                <div className='flex items-center justify-between w-full gap-8px'>
+                  <Typography.Text className='text-13px text-t-secondary'>
+                    {t('update.currentVersion', { version: updateState.currentVersion || __APP_VERSION__ })}
+                  </Typography.Text>
+                  {versionLabel && (
+                    <Typography.Text className='text-13px text-[rgb(var(--primary-6))] font-600'>
+                      v{versionLabel}
+                    </Typography.Text>
+                  )}
+                </div>
+                {renderUpdateDetails()}
                 <Button
                   type='primary'
                   long
-                  loading={checking || updateReadyState.preparing}
-                  disabled={updateReadyState.preparing}
+                  loading={updateBusy}
+                  disabled={updateBusy || updateState.status === 'downloading' || updateState.status === 'downloaded'}
                   onClick={() => void checkUpdate()}
                 >
-                  {updateReadyState.preparing
-                    ? t('update.preparingInstall')
-                    : updateReadyState.ready
-                      ? t('settings.updateReadyInstall', { version: updateReadyState.version })
-                      : checking
-                        ? t('settings.checkingForUpdates')
-                        : t('settings.checkForUpdates')}
+                  {updateBusy ? t('update.checking') : t('settings.checkForUpdates')}
                 </Button>
                 <div className='flex items-center justify-between w-full'>
                   <Typography.Text className='text-12px text-t-secondary'>

@@ -166,10 +166,11 @@ describe('UpdateNotificationCard', () => {
       expect(mocks.updateCheckMock).toHaveBeenCalled();
     });
 
-    // Release notes moved to a centered modal opened via the Release Log link.
-    expect(screen.queryByText('notes')).not.toBeInTheDocument();
+    // The update center exposes release notes directly, while the full modal
+    // remains available from the same Release Log action.
+    expect(screen.getByTestId('update-release-notes-inline')).toHaveTextContent('notes');
     fireEvent.click(screen.getByText('update.releaseLog'));
-    expect(await screen.findByText('notes')).toBeInTheDocument();
+    expect((await screen.findAllByText('notes')).length).toBeGreaterThanOrEqual(2);
   });
 
   it('restores a cached completed auto-update on mount', async () => {
@@ -337,7 +338,7 @@ describe('UpdateNotificationCard', () => {
     });
 
     const card = await screen.findByTestId('update-notification-card');
-    expect(card).toHaveTextContent('2.1.13');
+    expect(card.querySelector('[data-testid="update-current-version"]')).toHaveAttribute('data-version', '2.1.13');
     expect(card).toHaveTextContent('2.1.14');
     expect(screen.queryByLabelText('common.close')).not.toBeInTheDocument();
     expect(screen.queryByText('update.manualInstall')).not.toBeInTheDocument();
@@ -362,7 +363,7 @@ describe('UpdateNotificationCard', () => {
     });
 
     fireEvent.click(await screen.findByText('update.releaseLog'));
-    expect(await screen.findByText('update.releaseNotesLoading')).toBeInTheDocument();
+    expect((await screen.findAllByText('update.releaseNotesLoading')).length).toBeGreaterThanOrEqual(2);
 
     cleanup();
     mocks.updateCheckMock.mockRejectedValue(new Error('network failed'));
@@ -381,8 +382,8 @@ describe('UpdateNotificationCard', () => {
     });
 
     fireEvent.click(await screen.findByText('update.releaseLog'));
-    expect(await screen.findByText('update.releaseNotesFailed')).toBeInTheDocument();
-    expect(screen.getByText('update.viewRelease')).toBeInTheDocument();
+    expect((await screen.findAllByText('update.releaseNotesFailed')).length).toBeGreaterThanOrEqual(2);
+    expect((await screen.findAllByText('update.viewRelease')).length).toBeGreaterThanOrEqual(2);
   });
 
   it('keeps the cancel action available while downloading and cancel restores the initial state', async () => {

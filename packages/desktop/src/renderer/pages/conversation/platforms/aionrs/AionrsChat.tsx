@@ -32,6 +32,7 @@ const AionrsChat: React.FC<{
   workspace: string;
   default_workspace?: string;
   project_id?: string;
+  custom_workspace?: boolean;
   modelSelection: AionrsModelSelection;
   session_mode?: string;
   cron_job_id?: string;
@@ -49,6 +50,7 @@ const AionrsChat: React.FC<{
   workspace,
   default_workspace,
   project_id,
+  custom_workspace,
   modelSelection,
   session_mode,
   cron_job_id,
@@ -101,6 +103,7 @@ const AionrsChat: React.FC<{
             workspace={workspace}
             default_workspace={default_workspace}
             project_id={project_id}
+            custom_workspace={custom_workspace}
             modelSelection={modelSelection}
             session_mode={session_mode}
             agent_name={agent_name}

@@ -250,6 +250,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         workspace={conversation.extra.workspace}
         default_workspace={(conversation.extra as { default_workspace?: string } | undefined)?.default_workspace}
         project_id={conversation.project_id}
+        custom_workspace={(conversation.extra as { custom_workspace?: boolean } | undefined)?.custom_workspace}
         emptySlot={emptySlot}
         modelSelection={modelSelection}
         session_mode={conversation.extra?.session_mode}

@@ -202,5 +202,10 @@
   "goBack": "Back",
   "selectedCount": "{{count}} seleccionado(s)",
   "selectedSkills": "Habilidades seleccionadas",
-  "aiAssistant": "Asistente de IA"
+  "aiAssistant": "Asistente de IA",
+  "rendererRecovery": {
+    "title": "Error en la interfaz",
+    "retrying": "Restaurando la interfaz. Las tareas en curso continuarán.",
+    "description": "No se pudo restaurar la interfaz. Vuelve a cargar. El historial se conserva."
+  }
 }

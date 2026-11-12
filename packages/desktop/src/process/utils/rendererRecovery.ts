@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { app } from 'electron';
+import { app, type WebContents } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -19,6 +19,30 @@ export const RENDERER_CRASH_RESET_MS = 60 * 1000;
 
 // 应用级自动重启的最小间隔；窗口内再次触发则放弃自动恢复，避免重启死循环。
 export const RENDERER_RELAUNCH_THROTTLE_MS = 5 * 60 * 1000;
+
+export const RENDERER_HANG_TIMEOUT_MS = 15_000;
+
+/** Recover a sustained renderer hang through the existing crash/backoff policy. */
+export function installRendererHangRecovery(contents: WebContents): void {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const clear = () => {
+    clearTimeout(timer);
+    timer = undefined;
+  };
+  contents.on('unresponsive', () => {
+    if (timer !== undefined || contents.isDestroyed()) return;
+    console.warn('[AionUi] Renderer unresponsive; waiting for recovery');
+    timer = setTimeout(() => {
+      timer = undefined;
+      if (contents.isDestroyed()) return;
+      console.error('[AionUi] Renderer hang persisted; restarting the renderer');
+      contents.forcefullyCrashRenderer();
+    }, RENDERER_HANG_TIMEOUT_MS);
+  });
+  contents.on('responsive', clear);
+  contents.on('render-process-gone', clear);
+  contents.once('destroyed', clear);
+}
 
 export type RendererCrashAction = { kind: 'reload'; delayMs: number } | { kind: 'relaunch' } | { kind: 'give-up' };
 

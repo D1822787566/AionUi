@@ -43,8 +43,11 @@ const SortableConversationRow: React.FC<ConversationRowProps> = (props) => {
       role='button'
       aria-label={t('conversation.history.reorderPinned')}
       data-testid={`conversation-drag-handle-${props.conversation.id}`}
+      data-conversation-sort-handle
       className={`absolute inset-0 flex-center text-t-secondary transition-opacity ${
-        isDragging ? 'opacity-100 cursor-grabbing' : 'opacity-0 group-hover:opacity-100 cursor-grab'
+        isDragging
+          ? 'opacity-100 cursor-grabbing'
+          : 'opacity-0 group-hover:opacity-100 cursor-pointer active:cursor-grabbing'
       }`}
       style={{ lineHeight: 0, background: 'var(--color-fill-3)', borderRadius: 4, touchAction: 'none' }}
       onClick={(event) => event.stopPropagation()}

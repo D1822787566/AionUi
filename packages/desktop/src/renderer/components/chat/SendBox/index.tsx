@@ -247,6 +247,8 @@ const SendBox: React.FC<{
   loading?: boolean;
   className?: string;
   tools?: React.ReactNode;
+  /** Extra left-toolbar content placed immediately after the Draft box action. */
+  afterDraftAction?: React.ReactNode;
   rightTools?: React.ReactNode;
   prefix?: React.ReactNode;
   placeholder?: string;
@@ -304,6 +306,7 @@ const SendBox: React.FC<{
   className,
   loading,
   tools,
+  afterDraftAction,
   rightTools,
   disabled,
   sendDisabled = false,
@@ -2139,6 +2142,7 @@ const SendBox: React.FC<{
               <span className='sendbox-left-tool-group'>
                 {renderedTools}
                 {draftActionButton}
+                {afterDraftAction}
               </span>
             </div>
           )}
@@ -2244,6 +2248,7 @@ const SendBox: React.FC<{
               <span className='sendbox-left-tool-group'>
                 {renderedTools}
                 {draftActionButton}
+                {afterDraftAction}
               </span>
             </div>
             <div className='sendbox-actions flex items-center gap-1'>

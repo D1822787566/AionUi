@@ -106,20 +106,7 @@ const UpdateNotificationCard: React.FC = () => {
           </div>
         );
       case 'available':
-        return (
-          <div className='flex items-center gap-10px text-13px text-t-secondary'>
-            <span>
-              {state.currentVersion} → {versionLabel}
-            </span>
-            <button
-              type='button'
-              className='bg-transparent border-none p-0 cursor-pointer text-inherit underline underline-offset-2'
-              onClick={() => setReleaseLogVisible(true)}
-            >
-              {t('update.releaseLog')}
-            </button>
-          </div>
-        );
+        return <div className='text-13px text-t-secondary'>{t('update.availableTitle')}</div>;
       case 'downloading':
         return renderProgress();
       case 'downloaded':
@@ -255,11 +242,76 @@ const UpdateNotificationCard: React.FC = () => {
 
   const releaseNotes = state.updateInfo?.body || state.autoUpdateInfo?.releaseNotes || '';
 
+  const renderVersionSummary = () => {
+    if (!state.currentVersion && !versionLabel) return null;
+    return (
+      <div className='flex flex-wrap items-center gap-8px px-20px pt-4px pb-12px'>
+        {state.currentVersion && (
+          <span
+            data-testid='update-current-version'
+            data-version={state.currentVersion}
+            className='px-10px py-4px rd-6px text-12px bg-fill-2 text-t-secondary'
+          >
+            {t('update.currentVersion', { version: state.currentVersion })}
+          </span>
+        )}
+        {versionLabel && (
+          <>
+            <span className='text-13px text-t-tertiary'>→</span>
+            <span className='px-10px py-4px rd-6px text-12px bg-[rgb(var(--primary-1))] text-[rgb(var(--primary-6))] font-600'>
+              v{versionLabel}
+            </span>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderReleaseNotes = () => {
+    if (!['available', 'downloading', 'downloaded', 'preparing-install'].includes(state.status)) return null;
+    return (
+      <div className='mx-20px mb-12px px-12px py-10px rd-8px bg-fill-1 border border-border-2'>
+        <div className='flex items-center justify-between gap-8px mb-6px'>
+          <Button
+            type='text'
+            size='mini'
+            className='!p-0 !h-auto text-12px text-t-primary font-600'
+            onClick={() => setReleaseLogVisible(true)}
+          >
+            {t('update.releaseLog')}
+          </Button>
+          <Button
+            type='text'
+            size='mini'
+            className='!p-0 !h-auto text-12px text-[rgb(var(--primary-6))] underline underline-offset-2'
+            onClick={() => setReleaseLogVisible(true)}
+          >
+            {t('update.viewRelease')}
+          </Button>
+        </div>
+        <div
+          data-testid='update-release-notes-inline'
+          className='max-h-140px overflow-y-auto text-12px text-t-secondary leading-relaxed custom-scrollbar'
+        >
+          {state.releaseNotesStatus === 'loading' ? (
+            <span>{t('update.releaseNotesLoading')}</span>
+          ) : state.releaseNotesStatus === 'failed' ? (
+            <span>{t('update.releaseNotesFailed')}</span>
+          ) : releaseNotes ? (
+            <MarkdownView allowHtml>{releaseNotes}</MarkdownView>
+          ) : (
+            <span>{t('update.noReleaseNotes')}</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return renderNotificationLayer(
     <>
       <section
         data-testid='update-notification-card'
-        className='fixed end-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
+        className='fixed end-24px bottom-24px z-1000 w-[min(640px,calc(100vw-32px))] max-h-[calc(100vh-48px)] bg-1 border border-border-2 rd-10px shadow-[0_8px_32px_rgba(0,0,0,0.18)] overflow-y-auto custom-scrollbar'
       >
         <div className='flex items-center gap-10px px-16px pt-12px pb-6px min-w-0'>
           <Download
@@ -292,6 +344,8 @@ const UpdateNotificationCard: React.FC = () => {
             </div>
           )}
         </div>
+        {renderVersionSummary()}
+        {renderReleaseNotes()}
         {state.status === 'downloading' ? (
           <div className='px-16px pt-6px pb-12px'>{renderBody()}</div>
         ) : (

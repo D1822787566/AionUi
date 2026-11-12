@@ -202,5 +202,10 @@
   },
   "selectedCount": "{{count}} selecionado(s)",
   "selectedSkills": "Habilidades selecionadas",
-  "aiAssistant": "Assistente de IA"
+  "aiAssistant": "Assistente de IA",
+  "rendererRecovery": {
+    "title": "Erro na interface",
+    "retrying": "Restaurando a interface. As tarefas em andamento continuarão.",
+    "description": "Não foi possível restaurar a interface. Recarregue. O histórico será mantido."
+  }
 }

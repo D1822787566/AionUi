@@ -14,7 +14,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Button, Dropdown, Empty, Input, Menu, Message, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderClose, MoreOne, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ipcBridge } from '@/common';
@@ -28,6 +28,7 @@ import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
+import ConversationProjectDropZone from './ConversationProjectDropZone';
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onSessionClick,
@@ -59,6 +60,22 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     collapsedSections,
     toggleSection,
   } = useConversations();
+
+  const [draggedConversation, setDraggedConversation] = useState<TChatConversation>();
+  const [movingTarget, setMovingTarget] = useState<string>();
+  const movePending = useRef(false);
+  const endProjectDrag = useCallback(() => setDraggedConversation(undefined), []);
+  useEffect(() => {
+    window.addEventListener('dragend', endProjectDrag);
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') endProjectDrag();
+    };
+    window.addEventListener('keydown', cancel);
+    return () => {
+      window.removeEventListener('dragend', endProjectDrag);
+      window.removeEventListener('keydown', cancel);
+    };
+  }, [endProjectDrag]);
 
   const SectionLabel = useCallback(
     ({ sectionKey, label, trailing }: { sectionKey: string; label: string; trailing?: React.ReactNode }) => {
@@ -186,6 +203,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onToggleManualUnread: handleToggleManualUnread,
       getJobStatus,
       resolveConversationName,
+      onProjectDragStart: !batchMode && !isMobile ? setDraggedConversation : undefined,
+      onProjectDragEnd: endProjectDrag,
+      projectDragging: draggedConversation?.id === conversation.id,
     }),
     [
       collapsed,
@@ -209,38 +229,42 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleToggleManualUnread,
       getJobStatus,
       resolveConversationName,
+      isMobile,
+      draggedConversation,
+      endProjectDrag,
     ]
   );
 
   const moveToWorkspace = useCallback(
-    async (conversation: TChatConversation, workspace: string) => {
-      if (conversation.status === 'running' || conversation.status === 'pending') {
-        Message.warning(
-          t('conversation.workspace.busyCannotSwitch', {
-            defaultValue: 'The current agent is working; finish this task before changing the directory.',
-          })
-        );
-        return;
-      }
+    async (conversationId: string, target: { workspace: string } | { restore_default: true }) => {
+      const conversation = conversations.find((item) => item.id === conversationId);
+      endProjectDrag();
+      if (!conversation || conversation.type !== 'aionrs' || movePending.current) return;
+      if ('workspace' in target && conversation.extra.workspace === target.workspace) return;
+      if ('restore_default' in target && !conversation.project_id && !conversation.extra.custom_workspace) return;
+      movePending.current = true;
+      setMovingTarget('workspace' in target ? target.workspace : 'default');
       try {
         await ipcBridge.conversation.switchWorkspace.invoke({
           id: conversation.id,
-          expected_workspace: conversation.extra.workspace,
-          workspace,
+          expected_workspace: conversation.extra.workspace ?? '',
+          ...target,
         });
         emitter.emit('chat.history.refresh');
+        Message.success(t('conversation.workspace.switchSuccess'));
       } catch (error) {
         Message.error(error instanceof Error ? error.message : String(error));
+      } finally {
+        movePending.current = false;
+        setMovingTarget(undefined);
       }
     },
-    [t]
+    [t, conversations, endProjectDrag]
   );
 
   const renderConversation = (conversation: TChatConversation, dimIcon = false) => {
     const rowProps = getConversationRowProps(conversation);
-    return (
-      <ConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} onMoveToWorkspace={moveToWorkspace} />
-    );
+    return <ConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} />;
   };
 
   // Collect all sortable IDs for the pinned section
@@ -464,17 +488,23 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                   </Menu>
                 );
                 return (
-                  <div key={group.workspace} className='min-w-0'>
+                  <ConversationProjectDropZone
+                    key={group.workspace}
+                    target={group.workspace}
+                    targetName={group.displayName}
+                    conversation={draggedConversation}
+                    canDrop={Boolean(
+                      draggedConversation && draggedConversation.extra.workspace !== group.workspace && !movingTarget
+                    )}
+                    moving={movingTarget === group.workspace}
+                    onDrop={(conversationId) => void moveToWorkspace(conversationId, { workspace: group.workspace })}
+                  >
                     <WorkspaceCollapse
                       expanded={expandedWorkspaces.includes(group.workspace)}
                       onToggle={() => handleToggleWorkspace(group.workspace)}
                       siderCollapsed={collapsed}
                       stickyHeader
                       stickyTop={28}
-                      onDropConversation={(conversationId) => {
-                        const conversation = conversations.find((item) => item.id === conversationId);
-                        if (conversation) void moveToWorkspace(conversation, group.workspace);
-                      }}
                       header={
                         <span className='text-14px font-[500] truncate flex-1 text-t-primary min-w-0'>
                           {group.displayName}
@@ -531,17 +561,33 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                         {group.conversations.map((conversation) => renderConversation(conversation, true))}
                       </div>
                     </WorkspaceCollapse>
-                  </div>
+                  </ConversationProjectDropZone>
                 );
               })}
           </div>
         )}
 
         {/* L1: Conversations section — peer to projects, internally split by timeline */}
-        {conversationOnlySections.length > 0 && (
-          <div className='min-w-0'>
+        {(conversationOnlySections.length > 0 || !collapsed) && (
+          <ConversationProjectDropZone
+            target='default'
+            targetName={t('conversation.workspace.defaultWorkspaceGroup')}
+            conversation={draggedConversation}
+            canDrop={Boolean(
+              draggedConversation &&
+              (draggedConversation.project_id || draggedConversation.extra.custom_workspace) &&
+              !movingTarget
+            )}
+            moving={movingTarget === 'default'}
+            onDrop={(conversationId) => void moveToWorkspace(conversationId, { restore_default: true })}
+          >
             {!collapsed && (
-              <SectionLabel sectionKey='conversations' label={t('conversation.history.conversationsSection')} />
+              <SectionLabel sectionKey='conversations' label={t('conversation.workspace.defaultWorkspaceGroup')} />
+            )}
+            {!collapsed && conversationOnlySections.length === 0 && (
+              <div className='px-12px py-12px text-12px text-t-tertiary'>
+                {t('conversation.workspace.defaultDropHint')}
+              </div>
             )}
             {!collapsedSections.has('conversations') &&
               conversationOnlySections.map((section) => (
@@ -556,7 +602,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                   )}
                 </div>
               ))}
-          </div>
+          </ConversationProjectDropZone>
         )}
       </div>
     </>

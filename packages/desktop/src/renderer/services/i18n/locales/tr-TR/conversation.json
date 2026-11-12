@@ -419,12 +419,18 @@
       "explorer": "Dosya Gezgini",
       "browser": "Tarayıcı"
     },
-    "switchSuccess": "Project directory updated",
+    "switchSuccess": "Proje dizini sonraki görev için kaydedildi. Çalışan görevler eski dizinlerinde devam eder.",
     "chooseDirectory": "Choose project directory",
     "restoreDefault": "Restore default workspace",
     "openOriginalWorkspace": "Open original workspace",
     "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
-    "defaultWorkspace": "Default"
+    "defaultWorkspace": "Default",
+    "actions": "İşlemler",
+    "noProjects": "Henüz proje yok",
+    "defaultWorkspaceGroup": "Varsayılan çalışma alanı",
+    "defaultDropHint": "Varsayılan çalışma alanına dönmek için konuşmayı buraya bırakın",
+    "dropTarget": "{{name}} konumuna taşı",
+    "moving": "Konuşma taşınıyor…"
   },
   "minimap": {
     "searchAria": "Sohbeti ara",

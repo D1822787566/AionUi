@@ -202,5 +202,10 @@
   "goBack": "Zurück",
   "selectedCount": "{{count}} ausgewählt",
   "selectedSkills": "Ausgewählte Skills",
-  "aiAssistant": "KI-Assistent"
+  "aiAssistant": "KI-Assistent",
+  "rendererRecovery": {
+    "title": "Fehler bei der Anzeige",
+    "retrying": "Die Oberfläche wird wiederhergestellt. Laufende Aufgaben werden fortgesetzt.",
+    "description": "Die Oberfläche konnte nicht wiederhergestellt werden. Bitte neu laden. Der Gesprächsverlauf bleibt erhalten."
+  }
 }

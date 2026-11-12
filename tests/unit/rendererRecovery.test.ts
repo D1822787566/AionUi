@@ -12,6 +12,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { vi } from 'vitest';
+import { EventEmitter } from 'node:events';
+import type { WebContents } from 'electron';
 
 let userDataDir: string;
 
@@ -42,7 +44,43 @@ describe('rendererRecovery', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     fs.rmSync(userDataDir, { recursive: true, force: true });
+  });
+
+  it('recovers a sustained hang once and cancels recovery when the page responds', async () => {
+    vi.useFakeTimers();
+    const { installRendererHangRecovery, RENDERER_HANG_TIMEOUT_MS } = await loadPolicy();
+    const contents = Object.assign(new EventEmitter(), {
+      isDestroyed: () => false,
+      forcefullyCrashRenderer: vi.fn(),
+    });
+    installRendererHangRecovery(contents as unknown as WebContents);
+    contents.emit('unresponsive');
+    contents.emit('unresponsive');
+    vi.advanceTimersByTime(RENDERER_HANG_TIMEOUT_MS);
+    expect(contents.forcefullyCrashRenderer).toHaveBeenCalledTimes(1);
+    contents.emit('unresponsive');
+    contents.emit('responsive');
+    vi.advanceTimersByTime(RENDERER_HANG_TIMEOUT_MS);
+    expect(contents.forcefullyCrashRenderer).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not attempt hang recovery after destruction or a renderer crash', async () => {
+    vi.useFakeTimers();
+    const { installRendererHangRecovery, RENDERER_HANG_TIMEOUT_MS } = await loadPolicy();
+    const contents = Object.assign(new EventEmitter(), {
+      isDestroyed: () => false,
+      forcefullyCrashRenderer: vi.fn(),
+    });
+    installRendererHangRecovery(contents as unknown as WebContents);
+    contents.emit('unresponsive');
+    contents.emit('render-process-gone');
+    vi.advanceTimersByTime(RENDERER_HANG_TIMEOUT_MS);
+    contents.emit('unresponsive');
+    contents.emit('destroyed');
+    vi.advanceTimersByTime(RENDERER_HANG_TIMEOUT_MS);
+    expect(contents.forcefullyCrashRenderer).not.toHaveBeenCalled();
   });
 
   it('reloads immediately on the first ordinary crash', async () => {

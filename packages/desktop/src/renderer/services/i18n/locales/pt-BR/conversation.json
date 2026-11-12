@@ -440,12 +440,18 @@
       "explorer": "Explorador de Arquivos",
       "browser": "Navegador"
     },
-    "switchSuccess": "Project directory updated",
+    "switchSuccess": "Pasta do projeto salva para a próxima tarefa. As tarefas em andamento continuam na pasta original.",
     "chooseDirectory": "Choose project directory",
     "restoreDefault": "Restore default workspace",
     "openOriginalWorkspace": "Open original workspace",
     "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
-    "defaultWorkspace": "Default"
+    "defaultWorkspace": "Default",
+    "actions": "Ações",
+    "noProjects": "Nenhum projeto ainda",
+    "defaultWorkspaceGroup": "Espaço de trabalho padrão",
+    "defaultDropHint": "Solte uma conversa aqui para restaurar seu espaço de trabalho padrão",
+    "dropTarget": "Mover para {{name}}",
+    "moving": "Movendo conversa…"
   },
   "minimap": {
     "searchAria": "Pesquisar na conversa",

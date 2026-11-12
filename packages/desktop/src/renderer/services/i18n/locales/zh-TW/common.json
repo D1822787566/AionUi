@@ -202,5 +202,10 @@
   },
   "selectedCount": "已選 {{count}}",
   "selectedSkills": "已選技能",
-  "aiAssistant": "AI 助手"
+  "aiAssistant": "AI 助手",
+  "rendererRecovery": {
+    "title": "介面顯示異常",
+    "retrying": "正在自動恢復介面，目前工作會繼續執行。",
+    "description": "介面恢復未成功，請重新載入。對話記錄會保留。"
+  }
 }

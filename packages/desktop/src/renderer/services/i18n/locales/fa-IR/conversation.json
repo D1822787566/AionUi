@@ -434,12 +434,18 @@
       "explorer": "فایل اکسپلورر",
       "browser": "مرورگر"
     },
-    "switchSuccess": "Project directory updated",
+    "switchSuccess": "پوشه پروژه برای کار بعدی ذخیره شد. کارهای در حال اجرا در پوشه قبلی ادامه می‌یابند.",
     "chooseDirectory": "Choose project directory",
     "restoreDefault": "Restore default workspace",
     "openOriginalWorkspace": "Open original workspace",
     "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
-    "defaultWorkspace": "Default"
+    "defaultWorkspace": "Default",
+    "actions": "عملیات",
+    "noProjects": "هنوز پروژه‌ای وجود ندارد",
+    "defaultWorkspaceGroup": "فضای کاری پیش‌فرض",
+    "defaultDropHint": "گفتگو را اینجا رها کنید تا به فضای کاری پیش‌فرض خود بازگردد",
+    "dropTarget": "انتقال به {{name}}",
+    "moving": "در حال انتقال گفتگو…"
   },
   "minimap": {
     "searchAria": "جستجوی مکالمه",

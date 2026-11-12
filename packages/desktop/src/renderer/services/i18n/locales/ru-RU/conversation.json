@@ -438,12 +438,18 @@
       "explorer": "Проводник",
       "browser": "Браузер"
     },
-    "switchSuccess": "Project directory updated",
+    "switchSuccess": "Папка проекта сохранена для следующей задачи. Текущие задачи продолжатся в прежней папке.",
     "chooseDirectory": "Choose project directory",
     "restoreDefault": "Restore default workspace",
     "openOriginalWorkspace": "Open original workspace",
     "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
-    "defaultWorkspace": "Default"
+    "defaultWorkspace": "Default",
+    "actions": "Действия",
+    "noProjects": "Проектов пока нет",
+    "defaultWorkspaceGroup": "Рабочая область по умолчанию",
+    "defaultDropHint": "Перетащите беседу сюда, чтобы вернуть её в рабочую область по умолчанию",
+    "dropTarget": "Переместить в {{name}}",
+    "moving": "Перемещение беседы…"
   },
   "minimap": {
     "searchAria": "Поиск по диалогу",

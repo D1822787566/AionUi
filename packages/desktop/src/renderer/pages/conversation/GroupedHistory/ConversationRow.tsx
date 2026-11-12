@@ -32,6 +32,8 @@ import { useTranslation } from 'react-i18next';
 
 import type { ConversationRowProps } from './types';
 import { isConversationPinned } from './utils/groupingHelpers';
+import { CONVERSATION_DRAG_MIME } from './ConversationProjectDropZone';
+import dragStyles from './project-drag.module.css';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const {
@@ -47,7 +49,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     menuVisible,
     dimIcon = false,
     dragHandle,
-    onMoveToWorkspace,
+    onProjectDragStart,
+    onProjectDragEnd,
+    projectDragging,
   } = props;
   const logos = useAgentLogos();
   const layout = useLayoutContext();
@@ -78,7 +82,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     : undefined;
   const cronStatus = getJobStatus(conversation.id);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
-  const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
+  const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name && !projectDragging;
+  const canDragProject = Boolean(onProjectDragStart) && conversation.type === 'aionrs' && !batchMode;
+  const dragImage = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => () => dragImage.current?.remove(), []);
 
   const renderLeadingIcon = () => {
     if (cronStatus !== 'none') {
@@ -167,19 +174,41 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       {...siderTooltipProps}
       content={conversation.name || t('conversation.welcome.newConversation')}
       position='right'
+      popupVisible={projectDragging ? false : siderTooltipProps.popupVisible}
     >
       <div
         id={'c-' + conversation.id}
-        draggable={Boolean(onMoveToWorkspace) && conversation.type === 'aionrs'}
+        draggable={canDragProject}
         onDragStart={(event) => {
-          event.dataTransfer.setData('application/x-aionui-conversation', conversation.id);
+          if (!canDragProject || (event.target as HTMLElement).closest('[data-conversation-sort-handle]')) {
+            event.preventDefault();
+            return;
+          }
+          event.dataTransfer.setData(CONVERSATION_DRAG_MIME, conversation.id);
           event.dataTransfer.effectAllowed = 'move';
+          if (typeof event.dataTransfer.setDragImage === 'function') {
+            dragImage.current?.remove();
+            const ghost = document.createElement('div');
+            ghost.className = dragStyles.ghost;
+            ghost.textContent = conversation.name;
+            document.body.appendChild(ghost);
+            dragImage.current = ghost;
+            event.dataTransfer.setDragImage(ghost, 16, 16);
+            requestAnimationFrame(() => ghost.remove());
+          }
+          onProjectDragStart?.(conversation);
+        }}
+        onDragEnd={() => {
+          dragImage.current?.remove();
+          onProjectDragEnd?.();
         }}
         className={classNames(
           'chat-history__item h-34px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
           collapsed ? 'justify-center px-0' : 'justify-start gap-8px pe-16px',
           // dimIcon means this row sits inside a project/cron parent — visually indent the row content while keeping the bg full-width
           !collapsed && (dimIcon ? 'ps-34px' : 'ps-10px'),
+          canDragProject && dragStyles.draggable,
+          projectDragging && dragStyles.dragging,
           {
             'hover:bg-fill-3': !batchMode && !selected,
             '!bg-fill-3': selected,

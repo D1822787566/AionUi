@@ -202,5 +202,10 @@
   },
   "selectedCount": "選択済み {{count}}",
   "selectedSkills": "選択済みスキル",
-  "aiAssistant": "AI アシスタント"
+  "aiAssistant": "AI アシスタント",
+  "rendererRecovery": {
+    "title": "画面の表示でエラーが発生しました",
+    "retrying": "画面を復元しています。実行中のタスクは続行します。",
+    "description": "画面を復元できませんでした。再読み込みしてください。会話履歴は保持されます。"
+  }
 }

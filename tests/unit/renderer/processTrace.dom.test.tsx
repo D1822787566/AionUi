@@ -270,6 +270,17 @@ describe('process turn regression', () => {
     expect(result.map((item) => item.type)).toEqual(['process_turn', 'text']);
   });
 
+  it('keeps the final reply outside the process when a status row follows it', () => {
+    const result = groupProcessTimeline([
+      { id: 'tool', type: 'tool_summary' },
+      { id: 'answer', type: 'text' },
+      { id: 'status', type: 'agent_status' },
+    ]);
+
+    expect(result.map((item) => item.type)).toEqual(['process_turn', 'text', 'agent_status']);
+    expect(result[0]).toMatchObject({ type: 'process_turn', items: [{ id: 'tool' }] });
+  });
+
   it('omits missing or invalid timing instead of inventing zero seconds', () => {
     expect(processElapsed(undefined, 9000)).toBeUndefined();
     expect(processElapsed(1000, undefined)).toBeUndefined();

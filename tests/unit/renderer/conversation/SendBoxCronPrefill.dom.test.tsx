@@ -132,6 +132,24 @@ const SendBoxHarness = () => {
 };
 
 describe('SendBox scheduled-task prefill', () => {
+  it.each([false, true])('places the workspace entry after Draft box when multiline=%s', (multiline) => {
+    layoutState.isMobile = false;
+    render(
+      <SendBox
+        value='Draft'
+        onSend={vi.fn().mockResolvedValue(undefined)}
+        onAddToDraft={vi.fn()}
+        defaultMultiLine={multiline}
+        lockMultiLine={multiline}
+        afterDraftAction={<span data-testid='workspace-entry'>Project directory</span>}
+      />
+    );
+    const draft = screen.getByTestId('sendbox-add-to-draft-btn');
+    const workspace = screen.getByTestId('workspace-entry');
+    expect(workspace.closest('.sendbox-left-tool-group')).toContainElement(draft);
+    expect(draft.compareDocumentPosition(workspace) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('preserves the draft, focuses the mounted desktop input, and moves the caret to the end', async () => {
     layoutState.isMobile = false;
     render(

@@ -1,11 +1,14 @@
 import React from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Message } from '@arco-design/web-react';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import AionrsSendBox from '@/renderer/pages/conversation/platforms/aionrs/AionrsSendBox';
 import type { AionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
+import type { TChatConversation } from '@/common/config/storage';
+import WorkspaceGroupedHistory from '@/renderer/pages/conversation/GroupedHistory';
+import { MemoryRouter } from 'react-router-dom';
 
 const {
   ensureConversationRuntimeMock,
@@ -22,6 +25,9 @@ const {
   draftMutateMock,
   draftContentRef,
   runtimeViewIsProcessingRef,
+  switchWorkspaceMock,
+  sidebarGetMock,
+  useConversationsMock,
 } = vi.hoisted(() => ({
   ensureConversationRuntimeMock: vi.fn().mockResolvedValue({ recovered: false, config_options: [], runtime: null }),
   sendMessageInvokeMock: vi.fn().mockResolvedValue(undefined),
@@ -37,11 +43,15 @@ const {
   draftMutateMock: vi.fn(),
   draftContentRef: { current: '' },
   runtimeViewIsProcessingRef: { current: false },
+  switchWorkspaceMock: vi.fn().mockResolvedValue({}),
+  sidebarGetMock: vi.fn().mockResolvedValue({ groups: [] }),
+  useConversationsMock: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
+      switchWorkspace: { invoke: switchWorkspaceMock },
       sendMessage: {
         invoke: sendMessageInvokeMock,
       },
@@ -49,6 +59,7 @@ vi.mock('@/common', () => ({
         invoke: vi.fn().mockResolvedValue(undefined),
       },
     },
+    sidebar: { get: { invoke: sidebarGetMock } },
   },
 }));
 
@@ -63,6 +74,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     rightTools,
     sendButtonPrefix,
     topRightOverlay,
+    afterDraftAction,
     onAddToDraft,
     addToDraftDisabled,
     selectedSessions,
@@ -79,6 +91,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
     rightTools?: React.ReactNode;
     sendButtonPrefix?: React.ReactNode;
     topRightOverlay?: React.ReactNode;
+    afterDraftAction?: React.ReactNode;
     onAddToDraft?: () => void;
     addToDraftDisabled?: boolean;
     selectedSessions?: Array<{ id: string }>;
@@ -103,6 +116,7 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
         {rightTools}
         {sendButtonPrefix}
         {topRightOverlay}
+        {afterDraftAction}
         <button type='button' onClick={() => onChange?.('hello')}>
           change
         </button>
@@ -153,6 +167,19 @@ vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
 }));
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
+}));
+vi.mock('@/renderer/hooks/context/ThemeContext', () => ({ useThemeContext: () => ({ theme: 'light' }) }));
+vi.mock('@/renderer/hooks/agent/usePresetAssistantInfo', () => ({ usePresetAssistantInfo: () => ({ info: null }) }));
+vi.mock('@/renderer/utils/model/agentLogo', () => ({
+  useAgentLogos: () => ({}),
+  resolveAgentLogo: () => undefined,
+}));
+vi.mock('@/renderer/pages/cron', () => ({
+  CronJobIndicator: () => null,
+  useCronJobsMap: () => ({ getJobStatus: () => 'none', markAsRead: vi.fn(), setActiveConversation: vi.fn() }),
+}));
+vi.mock('@/renderer/pages/conversation/GroupedHistory/hooks/useConversations', () => ({
+  useConversations: useConversationsMock,
 }));
 vi.mock('@/renderer/hooks/chat/useAutoTitle', () => ({
   useAutoTitle: () => ({
@@ -255,28 +282,17 @@ vi.mock('@/renderer/utils/file/messageFiles', () => ({
   collectChatFileRefs: () => [],
   splitChatFileRefs: () => ({ uploadFiles: [], atPath: [] }),
 }));
-vi.mock('@arco-design/web-react', () => ({
+vi.mock('@arco-design/web-react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@arco-design/web-react')>()),
   Message: {
     warning: vi.fn(),
     error: vi.fn(),
     success: vi.fn(),
   },
   Tag: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-  Button: ({
-    children,
-    onClick,
-    disabled,
-  }: {
-    children?: React.ReactNode;
-    onClick?: () => void;
-    disabled?: boolean;
-  }) => (
-    <button type='button' onClick={onClick} disabled={disabled}>
-      {children}
-    </button>
-  ),
 }));
-vi.mock('@icon-park/react', () => ({
+vi.mock('@icon-park/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@icon-park/react')>()),
   Brain: () => null,
   MagicHat: () => null,
   Shield: () => null,
@@ -302,6 +318,69 @@ const modelSelection = {
   },
 } as AionrsModelSelection;
 
+const seedProjectDrag = (inProject = false) => {
+  const source = {
+    id: 'drag-source',
+    name: 'Conversation to move',
+    type: 'aionrs',
+    status: 'running',
+    project_id: inProject ? 'old-project' : undefined,
+    extra: { workspace: '/old', custom_workspace: inProject },
+  } as TChatConversation;
+  const target = {
+    id: 'drag-target',
+    name: 'Existing project conversation',
+    type: 'aionrs',
+    extra: { workspace: '/target', custom_workspace: true },
+  } as TChatConversation;
+  const state = {
+    conversations: [source, target],
+    isConversationGenerating: () => false,
+    isConversationWaitingConfirmation: () => false,
+    hasCompletionUnread: () => false,
+    isManualUnread: () => false,
+    markManualUnread: vi.fn(),
+    clearManualUnread: vi.fn(),
+    expandedWorkspaces: ['/old', '/target'],
+    pinnedConversations: [],
+    timelineSections: [
+      {
+        timeline: 'Recent',
+        items: [
+          inProject
+            ? {
+                type: 'workspace',
+                workspaceGroup: { workspace: '/old', display_name: 'Original project', conversations: [source] },
+              }
+            : { type: 'conversation', conversation: source },
+          {
+            type: 'workspace',
+            workspaceGroup: { workspace: '/target', display_name: 'Destination project', conversations: [target] },
+          },
+        ],
+      },
+    ],
+    handleToggleWorkspace: vi.fn(),
+    collapsedSections: new Set(),
+    toggleSection: vi.fn(),
+  };
+  useConversationsMock.mockReturnValue(state);
+  const transfer = {
+    types: ['application/x-aionui-conversation'],
+    setData: vi.fn(),
+    getData: () => source.id,
+    setDragImage: vi.fn(),
+  };
+  return { source, state, transfer };
+};
+
+const renderSidebar = () =>
+  render(
+    <MemoryRouter>
+      <WorkspaceGroupedHistory />
+    </MemoryRouter>
+  );
+
 describe('AionrsSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -309,6 +388,247 @@ describe('AionrsSendBox', () => {
     useTeamPermissionMock.mockReturnValue(null);
     draftContentRef.current = '';
     runtimeViewIsProcessingRef.current = false;
+    sidebarGetMock.mockResolvedValue({ groups: [] });
+    switchWorkspaceMock.mockReset().mockResolvedValue({});
+  });
+
+  it('keeps the default selector usable when a legacy conversation has no workspace', async () => {
+    render(<AionrsSendBox conversation_id='conv-1' modelSelection={modelSelection} />);
+    expect(screen.getByRole('button', { name: 'Default' })).not.toBeDisabled();
+    await waitFor(() => expect(sidebarGetMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('allows selecting a project during a turn and sends the latest expected directory', async () => {
+    runtimeViewIsProcessingRef.current = true;
+    sidebarGetMock.mockResolvedValue({
+      groups: [{ scope: { type: 'project', project_id: 'project-1', name: 'Project one' } }],
+    });
+    const { rerender } = render(
+      <AionrsSendBox conversation_id='conv-1' workspace='/old' modelSelection={modelSelection} />
+    );
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Default' }));
+    await screen.findByRole('tooltip');
+    fireEvent.click(screen.getByRole('button', { name: 'Default' }));
+    await screen.findByText('Project one');
+    rerender(<AionrsSendBox conversation_id='conv-1' workspace='/new' modelSelection={modelSelection} />);
+    fireEvent.click(screen.getByText('Project one'));
+    await waitFor(() =>
+      expect(switchWorkspaceMock).toHaveBeenCalledWith({
+        id: 'conv-1',
+        expected_workspace: '/new',
+        project_id: 'project-1',
+      })
+    );
+  });
+
+  it('keeps the conversation visible when loading projects fails', async () => {
+    sidebarGetMock.mockRejectedValueOnce(new Error('project list unavailable'));
+    render(<AionrsSendBox conversation_id='conv-1' workspace='/old' modelSelection={modelSelection} />);
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('common.failed'));
+    expect(screen.getByRole('button', { name: 'Default' })).not.toBeDisabled();
+  });
+
+  it('separates project destinations from actions and marks the current project', async () => {
+    sidebarGetMock.mockResolvedValue({
+      groups: [{ scope: { type: 'project', project_id: 'p1', name: 'Current project' } }],
+    });
+    render(
+      <AionrsSendBox conversation_id='conv-1' workspace='/current' project_id='p1' modelSelection={modelSelection} />
+    );
+    await waitFor(() => expect(sidebarGetMock).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Current project' }));
+    expect(await screen.findByText('conversation.workspace.actions')).toBeInTheDocument();
+    expect(document.querySelector('[aria-current="true"]')).toHaveTextContent('Current project');
+    expect(screen.getByText('conversation.workspace.restoreDefault').closest('[role="menuitem"]')).toBeInTheDocument();
+  });
+
+  it('allows a manually selected directory to restore the default workspace', async () => {
+    render(
+      <AionrsSendBox conversation_id='conv-1' workspace='/manual' custom_workspace modelSelection={modelSelection} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'manual' }));
+    const restore = await screen.findByText('conversation.workspace.restoreDefault');
+    expect(restore.closest('[role="menuitem"]')).not.toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(restore);
+    await waitFor(() =>
+      expect(switchWorkspaceMock).toHaveBeenCalledWith({
+        id: 'conv-1',
+        expected_workspace: '/manual',
+        restore_default: true,
+      })
+    );
+  });
+
+  it('accepts the project body as a drop target and displays a preview before saving', async () => {
+    const { source, transfer } = seedProjectDrag();
+    renderSidebar();
+    fireEvent.dragStart(document.getElementById('c-' + source.id)!, { dataTransfer: transfer });
+    fireEvent.dragEnter(screen.getByText('Existing project conversation'), { dataTransfer: transfer });
+    const zone = document.querySelector('[data-project-drop-zone="/target"]')!;
+    expect(zone).toHaveAttribute('data-drop-active', 'true');
+    expect(switchWorkspaceMock).not.toHaveBeenCalled();
+    fireEvent.drop(screen.getByText('Existing project conversation'), { dataTransfer: transfer });
+    await waitFor(() =>
+      expect(switchWorkspaceMock).toHaveBeenCalledExactlyOnceWith({
+        id: source.id,
+        expected_workspace: '/old',
+        workspace: '/target',
+      })
+    );
+  });
+
+  it('accepts an empty default group and restores the conversation private workspace', async () => {
+    const { source, transfer } = seedProjectDrag(true);
+    renderSidebar();
+    const zone = document.querySelector('[data-project-drop-zone="default"]')!;
+    fireEvent.dragStart(document.getElementById('c-' + source.id)!, { dataTransfer: transfer });
+    fireEvent.dragEnter(zone, { dataTransfer: transfer });
+    expect(zone).toHaveAttribute('data-drop-active', 'true');
+    fireEvent.drop(zone, { dataTransfer: transfer });
+    await waitFor(() =>
+      expect(switchWorkspaceMock).toHaveBeenCalledExactlyOnceWith({
+        id: source.id,
+        expected_workspace: '/old',
+        restore_default: true,
+      })
+    );
+  });
+
+  it('does not save a move to the same destination or after cancelling with Escape', () => {
+    const { source, transfer } = seedProjectDrag(true);
+    renderSidebar();
+    fireEvent.dragStart(document.getElementById('c-' + source.id)!, { dataTransfer: transfer });
+    const original = document.querySelector('[data-project-drop-zone="/old"]')!;
+    fireEvent.dragEnter(original, { dataTransfer: transfer });
+    fireEvent.drop(original, { dataTransfer: transfer });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    const target = document.querySelector('[data-project-drop-zone="/target"]')!;
+    fireEvent.drop(target, { dataTransfer: transfer });
+    expect(switchWorkspaceMock).not.toHaveBeenCalled();
+  });
+
+  it('preserves the source conversation when a project drop fails', async () => {
+    const { source, transfer } = seedProjectDrag(true);
+    switchWorkspaceMock.mockRejectedValueOnce(new Error('move rejected'));
+    renderSidebar();
+    fireEvent.dragStart(document.getElementById('c-' + source.id)!, { dataTransfer: transfer });
+    fireEvent.drop(document.querySelector('[data-project-drop-zone="default"]')!, { dataTransfer: transfer });
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('move rejected'));
+    expect(document.getElementById('c-' + source.id)).toBeInTheDocument();
+  });
+
+  it('keeps the chat mounted when an external project move updates an open workspace tooltip', async () => {
+    const { rerender } = render(
+      <AionrsSendBox conversation_id='conv-1' workspace='/old' modelSelection={modelSelection} />
+    );
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Default' }));
+    await screen.findByRole('tooltip');
+    rerender(
+      <AionrsSendBox
+        conversation_id='conv-1'
+        workspace='/project/new'
+        project_id='project-1'
+        modelSelection={modelSelection}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'send' })).toBeInTheDocument();
+    expect(screen.getByRole('tooltip')).toHaveTextContent('/project/new');
+    fireEvent.click(screen.getByRole('button', { name: 'new' }));
+    expect(await screen.findByText('conversation.workspace.chooseDirectory')).toBeInTheDocument();
+  });
+
+  it('keeps the chat and selector usable after a directory switch fails', async () => {
+    sidebarGetMock.mockResolvedValue({
+      groups: [{ scope: { type: 'project', project_id: 'project-1', name: 'Project one' } }],
+    });
+    switchWorkspaceMock.mockRejectedValueOnce(new Error('directory unavailable'));
+    render(<AionrsSendBox conversation_id='conv-1' workspace='/old' modelSelection={modelSelection} />);
+    await waitFor(() => expect(sidebarGetMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Default' }));
+    fireEvent.click(await screen.findByText('Project one'));
+    await waitFor(() => expect(Message.error).toHaveBeenCalledWith('directory unavailable'));
+    expect(screen.getByRole('button', { name: 'send' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Default' })).not.toBeDisabled();
+  });
+
+  it('keeps the chat usable after dropping a running conversation on a different project', async () => {
+    const source = {
+      id: 'conv-1',
+      name: 'Moving chat',
+      type: 'aionrs',
+      status: 'running',
+      extra: { workspace: '/old' },
+    } as TChatConversation;
+    const target = {
+      id: 'conv-2',
+      name: 'Target chat',
+      type: 'aionrs',
+      extra: { workspace: '/project/new', custom_workspace: true },
+    } as TChatConversation;
+    useConversationsMock.mockReturnValue({
+      conversations: [source, target],
+      isConversationGenerating: (id: string) => id === source.id,
+      isConversationWaitingConfirmation: () => false,
+      hasCompletionUnread: () => false,
+      isManualUnread: () => false,
+      markManualUnread: vi.fn(),
+      clearManualUnread: vi.fn(),
+      expandedWorkspaces: ['/project/new'],
+      pinnedConversations: [],
+      timelineSections: [
+        {
+          timeline: 'Recent',
+          items: [
+            { type: 'conversation', conversation: source },
+            {
+              type: 'workspace',
+              workspaceGroup: { workspace: '/project/new', display_name: 'Target project', conversations: [target] },
+            },
+          ],
+        },
+      ],
+      handleToggleWorkspace: vi.fn(),
+      collapsedSections: new Set(),
+      toggleSection: vi.fn(),
+    });
+    const View = () => {
+      const [directory, setDirectory] = React.useState('/old');
+      switchWorkspaceMock.mockImplementation(async () => {
+        setDirectory('/project/new');
+        return {};
+      });
+      return (
+        <MemoryRouter initialEntries={['/conversation/conv-1']}>
+          <WorkspaceGroupedHistory />
+          <AionrsSendBox
+            conversation_id='conv-1'
+            workspace={directory}
+            project_id={directory === '/old' ? undefined : 'project-1'}
+            modelSelection={modelSelection}
+          />
+        </MemoryRouter>
+      );
+    };
+    render(<View />);
+    const dragData = new Map<string, string>();
+    const dataTransfer = {
+      types: ['application/x-aionui-conversation'],
+      setData: (type: string, value: string) => dragData.set(type, value),
+      getData: (type: string) => dragData.get(type) ?? '',
+    };
+    fireEvent.dragStart(screen.getByText('Moving chat').closest('[draggable]')!, { dataTransfer });
+    fireEvent.dragOver(screen.getByText('Target project'), { dataTransfer });
+    fireEvent.drop(screen.getByText('Target project'), { dataTransfer });
+    await waitFor(() =>
+      expect(switchWorkspaceMock).toHaveBeenCalledExactlyOnceWith({
+        id: 'conv-1',
+        expected_workspace: '/old',
+        workspace: '/project/new',
+      })
+    );
+    fireEvent.mouseEnter(await screen.findByRole('button', { name: 'new' }));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent('/project/new');
+    expect(screen.getByRole('button', { name: 'send' })).toBeInTheDocument();
   });
 
   it('does not warm up team session when draft content changes', async () => {

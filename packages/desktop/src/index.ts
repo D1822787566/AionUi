@@ -10,7 +10,7 @@ import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { describeUncaughtError } from './process/utils/describeUncaughtError';
 import type { UncaughtErrorDiagnostics } from './process/utils/describeUncaughtError';
-import { createRendererRecoveryPolicy } from './process/utils/rendererRecovery';
+import { createRendererRecoveryPolicy, installRendererHangRecovery } from './process/utils/rendererRecovery';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
@@ -654,9 +654,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     }
   });
 
-  mainWindow.webContents.on('unresponsive', () => {
-    console.warn('[AionUi] Renderer became unresponsive');
-  });
+  installRendererHangRecovery(mainWindow.webContents);
 
   mainWindow.on('closed', () => {
     console.log('[AionUi] Main window closed');

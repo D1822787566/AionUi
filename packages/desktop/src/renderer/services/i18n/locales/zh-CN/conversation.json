@@ -434,12 +434,18 @@
       "explorer": "文件资源管理器",
       "browser": "浏览器"
     },
-    "switchSuccess": "项目目录已更新",
+    "switchSuccess": "项目目录已更新；当前任务在原目录继续，下一轮使用新目录。",
     "chooseDirectory": "选择项目目录",
     "restoreDefault": "恢复默认工作区",
     "openOriginalWorkspace": "打开原工作区",
     "busyCannotSwitch": "当前任务进行中，暂不能切换项目目录。",
-    "defaultWorkspace": "默认"
+    "defaultWorkspace": "默认",
+    "actions": "操作",
+    "noProjects": "暂无项目",
+    "defaultWorkspaceGroup": "默认工作区",
+    "defaultDropHint": "将会话拖到此处恢复默认工作区",
+    "dropTarget": "移动到{{name}}",
+    "moving": "正在移动会话…"
   },
   "minimap": {
     "searchAria": "搜索会话",

@@ -66,6 +66,7 @@ const getVersionLabelFromState = (state: UpdateNotificationState): string =>
 
 export const useUpdateNotificationController = () => {
   const { t, i18n } = useTranslation();
+  const language = i18n?.language ?? 'en-US';
   const [state, dispatchState] = useReducer(reduceNotificationState, undefined, createInitialState);
   const stateRef = useRef(state);
   const restoreDownloadedPendingRef = useRef(true);
@@ -280,7 +281,7 @@ export const useUpdateNotificationController = () => {
           dispatchAutoAvailable(evt);
           break;
         case 'downloading': {
-          const progress = toAutoProgress(evt, i18n.language);
+          const progress = toAutoProgress(evt, language);
           if (progress) {
             dispatch({ type: 'autoProgress', progress });
           }
@@ -303,7 +304,7 @@ export const useUpdateNotificationController = () => {
     });
 
     return () => removeListener();
-  }, [dispatchAutoAvailable, t, i18n.language]);
+  }, [dispatchAutoAvailable, language, t]);
 
   useEffect(() => {
     const removeProgressListener = ipcBridge.update.downloadProgress.on((evt: UpdateDownloadProgressEvent) => {
@@ -312,14 +313,14 @@ export const useUpdateNotificationController = () => {
         type: 'manualProgress',
         downloadId: evt.downloadId,
         status: evt.status,
-        progress: toManualProgress(evt, i18n.language),
+        progress: toManualProgress(evt, language),
         filePath: evt.file_path,
         error: evt.error || t('update.downloadFailed'),
       });
     });
 
     return () => removeProgressListener();
-  }, [t, i18n.language]);
+  }, [language, t]);
 
   const openReleasePage = useCallback(() => {
     if (!state.releasePageUrl) return;

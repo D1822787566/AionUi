@@ -202,5 +202,10 @@
   },
   "selectedCount": "{{count}} seçili",
   "selectedSkills": "Seçili beceriler",
-  "aiAssistant": "Yapay Zekâ Asistanı"
+  "aiAssistant": "Yapay Zekâ Asistanı",
+  "rendererRecovery": {
+    "title": "Arayüz hatası",
+    "retrying": "Arayüz geri yükleniyor. Çalışan görevler devam edecek.",
+    "description": "Arayüz geri yüklenemedi. Yeniden yükleyin. Konuşma geçmişi korunur."
+  }
 }

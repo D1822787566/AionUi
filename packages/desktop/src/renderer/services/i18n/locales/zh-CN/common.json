@@ -202,5 +202,10 @@
   },
   "selectedCount": "已选 {{count}}",
   "selectedSkills": "已选技能",
-  "aiAssistant": "AI 助手"
+  "aiAssistant": "AI 助手",
+  "rendererRecovery": {
+    "title": "界面显示异常",
+    "retrying": "正在自动恢复界面，当前任务会继续执行。",
+    "description": "界面恢复未成功，请重新加载。会话记录会保留。"
+  }
 }

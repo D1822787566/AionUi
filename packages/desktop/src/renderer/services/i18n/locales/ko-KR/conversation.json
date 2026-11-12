@@ -434,12 +434,18 @@
       "explorer": "파일 탐색기",
       "browser": "브라우저"
     },
-    "switchSuccess": "Project directory updated",
+    "switchSuccess": "다음 작업에 사용할 프로젝트 폴더를 저장했습니다. 실행 중인 작업은 기존 폴더에서 계속됩니다.",
     "chooseDirectory": "Choose project directory",
     "restoreDefault": "Restore default workspace",
     "openOriginalWorkspace": "Open original workspace",
     "busyCannotSwitch": "The current agent is working; finish this task before changing the directory.",
-    "defaultWorkspace": "Default"
+    "defaultWorkspace": "Default",
+    "actions": "작업",
+    "noProjects": "프로젝트가 없습니다",
+    "defaultWorkspaceGroup": "기본 작업 공간",
+    "defaultDropHint": "대화를 여기에 놓으면 기본 작업 공간으로 돌아갑니다",
+    "dropTarget": "{{name}}(으)로 이동",
+    "moving": "대화 이동 중…"
   },
   "minimap": {
     "searchAria": "대화 검색",

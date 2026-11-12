@@ -202,5 +202,10 @@
   },
   "selectedCount": "Selected {{count}}",
   "selectedSkills": "Selected skills",
-  "aiAssistant": "AI Assistant"
+  "aiAssistant": "AI Assistant",
+  "rendererRecovery": {
+    "title": "The interface encountered an error",
+    "retrying": "Restoring the interface. Running tasks will continue.",
+    "description": "The interface could not be restored. Reload to try again. Your conversation history is kept."
+  }
 }
