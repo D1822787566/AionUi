@@ -9,7 +9,7 @@ const {
   getModulesToRebuild,
 } = require('./rebuildNativeModules');
 const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/src/verify-bundled-aioncore-resources');
-const { verifyOfficecli } = require('./prepare-officecli');
+const { verifyOfficecli, verifyHssf } = require('./prepare-officecli');
 const officecliManifest = require('../resources/officecli/manifest.json');
 
 /**
@@ -33,6 +33,7 @@ function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) 
     }
     fs.accessSync(path.join(officecliDir, 'LICENSE.officecli.txt'));
     verifyOfficecli(path.join(officecliDir, 'officecli.exe'));
+    verifyHssf(path.join(officecliDir, 'hssf'));
   }
   const result = verifyBundledAioncoreResources({
     resourcesDir,

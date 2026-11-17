@@ -49,7 +49,12 @@ describe('bundled OfficeCLI environment', () => {
     const { root, binary } = fixture(false);
     const env: NodeJS.ProcessEnv = {};
     vi.spyOn(console, 'warn').mockImplementation(() => {});
-    configureBundledOfficecliEnvironment(root, { required: true, platform: 'win32', arch: 'x64', env });
+    configureBundledOfficecliEnvironment(root, {
+      required: true,
+      platform: 'win32',
+      arch: 'x64',
+      env,
+    });
     expect(env.AIONUI_OFFICECLI_PATH).toBe(binary);
     expect(env.AIONUI_OFFICECLI_MANAGED).toBe('1');
     expect(env.OFFICECLI_SKIP_UPDATE).toBe('1');
@@ -81,5 +86,27 @@ describe('bundled OfficeCLI environment', () => {
     const env = { PATH: 'system' };
     expect(configureBundledOfficecliEnvironment(tmpdir(), { platform: 'win32', arch: 'x64', env })).toBeNull();
     expect(env).toEqual({ PATH: 'system' });
+  });
+
+  it('passes the bundled HSSF directory to the backend without requiring system Java', () => {
+    const { root, binary } = fixture();
+    const hssfHome = join(dirname(binary), 'hssf');
+    mkdirSync(hssfHome);
+    writeFileSync(join(hssfHome, 'manifest.json'), '{}');
+    const env: NodeJS.ProcessEnv = {};
+    configureBundledOfficecliEnvironment(root, { platform: 'win32', arch: 'x64', env });
+    expect(env.AIONUI_HSSF_HOME).toBe(hssfHome);
+  });
+
+  it('keeps a packaged missing HSSF bundle explicit instead of using a system runtime', () => {
+    const { root, binary } = fixture();
+    const env: NodeJS.ProcessEnv = {};
+    configureBundledOfficecliEnvironment(root, {
+      required: true,
+      platform: 'win32',
+      arch: 'x64',
+      env,
+    });
+    expect(env.AIONUI_HSSF_HOME).toBe(join(dirname(binary), 'hssf'));
   });
 });

@@ -4,6 +4,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const manifest = require('../resources/officecli/manifest.json');
+const hssfManifest = require('../resources/officecli/hssf-manifest.json');
 const OFFICECLI_VERSION = manifest.version;
 const OFFICECLI_SHA256 = manifest.sha256;
 const RUNTIME_KEY = manifest.runtimeKey;
@@ -75,9 +76,61 @@ function prepareOfficecli({ projectRoot, platform, arch, sourceDir }) {
   return { prepared: true, skipped: false, runtimeKey: RUNTIME_KEY, targetBinary, manifest };
 }
 
-module.exports = { OFFICECLI_SHA256, OFFICECLI_VERSION, prepareOfficecli, verifyOfficecli };
+function verifyHssf(bundleDir) {
+  const actual = JSON.parse(fs.readFileSync(path.join(bundleDir, 'manifest.json'), 'utf8'));
+  if (JSON.stringify(actual) !== JSON.stringify(hssfManifest)) {
+    throw new Error('Bundled HSSF manifest does not match the pinned resources.');
+  }
+  for (const [relative, expected] of Object.entries(hssfManifest.files)) {
+    const file = path.resolve(bundleDir, relative);
+    if (!file.startsWith(`${path.resolve(bundleDir)}${path.sep}`)) {
+      throw new Error('HSSF manifest path is outside its bundle.');
+    }
+    if (sha256(file) !== expected.toUpperCase()) {
+      throw new Error(`HSSF SHA-256 mismatch: ${relative}`);
+    }
+  }
+  return { checked: Object.keys(hssfManifest.files).length };
+}
+
+function prepareHssf({ projectRoot, platform, arch, sourceDir }) {
+  if (`${platform}-${arch}` !== hssfManifest.runtime_key) {
+    return { prepared: false, skipped: true };
+  }
+  const targetDir = path.join(projectRoot, 'resources', 'bundled-officecli', RUNTIME_KEY, 'hssf');
+  const source =
+    sourceDir ||
+    process.env.AIONUI_HSSF_SOURCE_DIR?.trim() ||
+    path.join(projectRoot, 'resources', 'officecli-source', RUNTIME_KEY, 'hssf');
+  const candidate = fs.existsSync(path.join(source, 'manifest.json')) ? source : targetDir;
+  verifyHssf(candidate);
+  if (path.resolve(candidate) !== path.resolve(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+    fs.cpSync(candidate, targetDir, { recursive: true, force: true });
+  }
+  verifyHssf(targetDir);
+  return { prepared: true, skipped: false, targetDir };
+}
+
+module.exports = {
+  OFFICECLI_SHA256,
+  OFFICECLI_VERSION,
+  prepareOfficecli,
+  verifyOfficecli,
+  prepareHssf,
+  verifyHssf,
+};
 
 if (require.main === module) {
-  prepareOfficecli({ projectRoot: path.resolve(__dirname, '..'), platform: process.platform, arch: process.arch });
+  prepareOfficecli({
+    projectRoot: path.resolve(__dirname, '..'),
+    platform: process.platform,
+    arch: process.arch,
+  });
+  prepareHssf({
+    projectRoot: path.resolve(__dirname, '..'),
+    platform: process.platform,
+    arch: process.arch,
+  });
   console.log(`OfficeCLI ${OFFICECLI_VERSION}: preparation completed for ${process.platform}-${process.arch}`);
 }

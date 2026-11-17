@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { prepareOfficecli } = require('../../../scripts/prepare-officecli.js');
+const { prepareOfficecli, prepareHssf, verifyHssf } = require('../../../scripts/prepare-officecli.js');
 const directories: string[] = [];
 
 function root(): string {
@@ -22,7 +22,12 @@ describe('OfficeCLI build resources', () => {
   it('fails when the offline input is missing instead of attempting a download', () => {
     const projectRoot = root();
     expect(() =>
-      prepareOfficecli({ projectRoot, platform: 'win32', arch: 'x64', sourceDir: join(projectRoot, 'input') })
+      prepareOfficecli({
+        projectRoot,
+        platform: 'win32',
+        arch: 'x64',
+        sourceDir: join(projectRoot, 'input'),
+      })
     ).toThrow('OfficeCLI 1.0.159 is missing');
   });
 
@@ -40,6 +45,27 @@ describe('OfficeCLI build resources', () => {
     ['linux', 'x64'],
     ['win32', 'arm64'],
   ])('skips an unsupported %s %s target', (platform, arch) => {
-    expect(prepareOfficecli({ projectRoot: root(), platform, arch })).toMatchObject({ prepared: false, skipped: true });
+    expect(prepareOfficecli({ projectRoot: root(), platform, arch })).toMatchObject({
+      prepared: false,
+      skipped: true,
+    });
+  });
+
+  it('rejects missing HSSF input without downloading a runtime', () => {
+    const projectRoot = root();
+    expect(() => prepareHssf({ projectRoot, platform: 'win32', arch: 'x64' })).toThrow();
+  });
+
+  it('rejects an altered HSSF manifest before trusting its paths', () => {
+    const bundleDir = root();
+    writeFileSync(join(bundleDir, 'manifest.json'), '{"files":{"../outside":"hash"}}');
+    expect(() => verifyHssf(bundleDir)).toThrow('manifest does not match');
+  });
+
+  it('skips HSSF resources for platforms outside the Windows x64 first release', () => {
+    expect(prepareHssf({ projectRoot: root(), platform: 'linux', arch: 'x64' })).toMatchObject({
+      prepared: false,
+      skipped: true,
+    });
   });
 });

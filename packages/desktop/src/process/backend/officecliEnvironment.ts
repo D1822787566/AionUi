@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
-/** Make the pinned OfficeCLI available to AionCore and its agent subprocesses. */
+/** Make the pinned OfficeCLI and HSSF runtime available to AionCore and its agents. */
 export function configureBundledOfficecliEnvironment(
   resourcesPath: string,
   options: {
@@ -35,5 +35,9 @@ export function configureBundledOfficecliEnvironment(
   env.AIONUI_OFFICECLI_MANAGED = '1';
   env.AIONUI_OFFICECLI_SKIP_UPDATE = '1';
   env.OFFICECLI_SKIP_UPDATE = '1';
+  const hssfHome = join(officecliDir, 'hssf');
+  if (required || existsSync(join(hssfHome, 'manifest.json'))) {
+    env.AIONUI_HSSF_HOME = hssfHome;
+  }
   return officecliPath;
 }
