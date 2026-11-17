@@ -55,6 +55,12 @@ vi.mock('@/renderer/components/settings/updateReadyState', () => ({
 
 vi.mock('@/renderer/components/settings/useUpdateNotificationController', () => ({
   UPDATE_AVAILABLE_EVENT: 'aionui-update-available',
+  formatUpdateSize: (bytes: number) => `${bytes} B`,
+  useUpdateNotificationController: () => ({
+    state: { status: 'idle', updateInfo: null, autoUpdateInfo: null },
+    versionLabel: '',
+    actions: { checkForUpdates: mocks.runUpdateCheck },
+  }),
 }));
 
 vi.mock('@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal', () => ({ default: () => null }));
