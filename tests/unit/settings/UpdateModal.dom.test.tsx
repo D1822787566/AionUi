@@ -163,9 +163,10 @@ describe('UpdateModal manual install fallback', () => {
       expect(mocks.updateCheckMock).toHaveBeenCalled();
     });
 
-    // Release notes now live in the Release Log modal, opened via the link.
+    // Notes appear both inline and in the Release Log modal.
+    expect(await screen.findByTestId('update-release-notes-inline')).toHaveTextContent('notes');
     fireEvent.click(await screen.findByText('update.releaseLog'));
-    expect(await screen.findByText('notes')).toBeInTheDocument();
-    expect(screen.getByText(/2\.1\.13/)).toBeInTheDocument();
+    expect(await screen.findByTestId('update-release-log')).toHaveTextContent('notes');
+    expect(screen.getByTestId('update-current-version')).toHaveAttribute('data-version', '2.1.13');
   });
 });
