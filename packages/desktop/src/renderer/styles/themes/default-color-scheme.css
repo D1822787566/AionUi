@@ -1,5 +1,33 @@
 /* Default Color Scheme - AOU Purple Theme */
 
+/* Approved subagent prototype palette; scoped text/status tokens avoid changing chat typography. */
+:root {
+  --subagent-text: #222631;
+  --subagent-muted: #596173;
+  --subagent-quiet: #737d90;
+  --subagent-brand: #596590;
+  --subagent-brand-weak: #eff0f6;
+  --subagent-good: #23845a;
+  --subagent-good-bg: #eef8f2;
+  --subagent-bad: #bd4743;
+  --subagent-bad-bg: #fff2f0;
+  --subagent-warn: #956615;
+  --subagent-warn-bg: #fff8e8;
+}
+[data-theme='dark'] {
+  --subagent-text: #eceef2;
+  --subagent-muted: #bec3ce;
+  --subagent-quiet: #979ead;
+  --subagent-brand: #b5bcd6;
+  --subagent-brand-weak: #2c303e;
+  --subagent-good: #7cd9ac;
+  --subagent-good-bg: #192b22;
+  --subagent-bad: #ff9b94;
+  --subagent-bad-bg: #342321;
+  --subagent-warn: #e7c078;
+  --subagent-warn-bg: #30291c;
+}
+
 /* Light Mode */
 :root,
 [data-color-scheme='default'] {

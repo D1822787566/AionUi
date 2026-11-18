@@ -13,6 +13,7 @@
  */
 
 import type { IConfirmation } from '@/common/chat/chatLib';
+import type { SubagentRun, SubagentEntry, SubagentPage } from '../types/platform/subagentTypes';
 import type { AcpSlashCommandApiItem } from '@/common/chat/slash/types';
 import { bridge } from '@/common/platform/bridge';
 import { buildListTasksPath } from './teamTaskPath';
@@ -440,6 +441,18 @@ export const conversation = {
     (p) => ({ status: p.status })
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
+  realtimeReconnected: wsEmitter<{ timestamp: number }>('realtime.reconnected'),
+  listSubagents: httpGet<SubagentPage<SubagentRun>, { conversation_id: string; after?: string }>(
+    (p) =>
+      `/api/conversations/${encodeURIComponent(p.conversation_id)}/subagents?limit=100${p.after ? `&after=${encodeURIComponent(p.after)}` : ''}`
+  ),
+  listSubagentEntries: httpGet<
+    SubagentPage<SubagentEntry, number>,
+    { conversation_id: string; child_run_id: string; after?: number }
+  >(
+    (p) =>
+      `/api/conversations/${encodeURIComponent(p.conversation_id)}/subagents/${encodeURIComponent(p.child_run_id)}/entries?limit=100${p.after !== undefined ? `&after=${p.after}` : ''}`
+  ),
   userCreated: wsEmitter<{
     conversation_id: string;
     msg_id: string;

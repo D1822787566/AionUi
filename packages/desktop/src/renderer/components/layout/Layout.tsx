@@ -18,7 +18,13 @@ import { usePreviewContext } from '@renderer/pages/conversation/Preview';
 import { ProjectPanelHost } from '@renderer/components/layout/ProjectPanelHost';
 import { ProjectPanelMobileOverlay } from '@renderer/components/layout/ProjectPanelMobileOverlay';
 import { setCurrentProject, useCurrentProject } from '@renderer/pages/conversation/explorer/currentProjectStore';
-import { setCurrentConversation } from '@renderer/pages/conversation/explorer/currentConversationStore';
+import {
+  setCurrentConversation,
+  useCurrentConversation,
+} from '@renderer/pages/conversation/explorer/currentConversationStore';
+import { subagents, useSubagents } from '@/renderer/pages/conversation/components/ChatLayout/SubagentExecution/store';
+import SubagentPanel from '@/renderer/pages/conversation/components/ChatLayout/SubagentExecution/Panel';
+import { useNarrowPanel } from '@/renderer/pages/conversation/components/ChatLayout/SubagentExecution/presentation';
 import { useContainerWidth } from '@renderer/pages/conversation/hooks/useContainerWidth';
 import { useProjectExplorerColumnWidth } from '@renderer/hooks/ui/useProjectExplorerColumnWidth';
 import { useResizableSplit } from '@renderer/hooks/ui/useResizableSplit';
@@ -180,7 +186,18 @@ const Layout: React.FC<{
   // [content | explorer] row, clamp the explorer width so chat (+ preview) keep
   // their reserve. Active only when a project is bound and on desktop.
   const currentProject = useCurrentProject();
+  const activeConversation = useCurrentConversation();
+  const subagentState = useSubagents();
+  const subagentOpen = Boolean(subagentState.selected && subagentState.conversationId === activeConversation);
+  const subagentNarrow = useNarrowPanel();
+  useEffect(() => {
+    subagents.activate(activeConversation);
+    return () => subagents.activate(null);
+  }, [activeConversation]);
   const { containerRef: mainRowRef, containerWidth: mainRowWidth } = useContainerWidth();
+  const subagentOverlay =
+    subagentNarrow ||
+    (mainRowWidth > 0 && mainRowWidth < (viewportWidth >= 1600 ? 470 : viewportWidth >= 1200 ? 430 : 390) + 240);
   const explorerActive = Boolean(currentProject) && !isMobile;
   const { widthPx: explorerWidthPx, createDragHandle: createExplorerDragHandle } = useProjectExplorerColumnWidth(
     mainRowWidth,
@@ -206,7 +223,7 @@ const Layout: React.FC<{
   // 最大化：隐藏聊天区、让预览铺满它腾出的空间；左侧边栏与右侧资源管理器列均不动。
   // Maximized: hide the chat area and let the preview fill the space it vacated;
   // the left sidebar and the right explorer column are both left untouched.
-  const previewMaximized = previewRegionActive && isPreviewMaximized;
+  const previewMaximized = previewRegionActive && isPreviewMaximized && !subagentOpen;
   const { widthPx: previewWidthPx, createDragHandle: createPreviewRegionDragHandle } = useProjectPreviewRegionWidth(
     mainRowWidth,
     explorerCollapsed ? 0 : explorerWidthPx,
@@ -485,8 +502,10 @@ const Layout: React.FC<{
                 explorer clamp (independent of the split → non-circular). The
                 explorer column is a sibling of the route content, above the
                 per-conversation subtree → persists across same-project switches. */}
-            <div ref={mainRowRef} className='flex flex-1 min-h-0 overflow-hidden'>
+            <div ref={mainRowRef} className='flex flex-1 min-h-0 overflow-hidden relative'>
               <ArcoLayout.Content
+                inert={subagentOpen && subagentOverlay}
+                data-subagent-background
                 className={'bg-1 layout-content flex flex-col min-h-0 flex-1'}
                 onClick={() => {
                   if (isMobile && !collapsed) setCollapsed(true);
@@ -518,6 +537,7 @@ const Layout: React.FC<{
                   data-project-preview-region
                   className='preview-panel flex flex-col relative overflow-visible'
                   style={{
+                    display: subagentOpen ? 'none' : undefined,
                     // 最大化时铺满聊天区腾出的空间（explorer 列仍占其固定宽度）；
                     // 否则用拖拽得到的固定宽度。还原后自动回到该宽度。
                     // Maximized: fill the space the chat vacated (the explorer column
@@ -554,25 +574,30 @@ const Layout: React.FC<{
                 </div>
               )}
               {!isMobile && (
-                <ProjectPanelHost
-                  widthPx={explorerWidthPx}
-                  collapsed={explorerCollapsed}
-                  dragHandle={createExplorerDragHandle({
-                    className: 'absolute start-0 top-0 bottom-0 z-20',
-                    reverse: true,
-                  })}
-                />
+                <div style={{ display: subagentOpen ? 'none' : 'flex' }}>
+                  <ProjectPanelHost
+                    widthPx={explorerWidthPx}
+                    collapsed={explorerCollapsed}
+                    dragHandle={createExplorerDragHandle({
+                      className: 'absolute start-0 top-0 bottom-0 z-20',
+                      reverse: true,
+                    })}
+                  />
+                </div>
               )}
+              {subagentOpen && <SubagentPanel forceOverlay={subagentOverlay} />}
             </div>
 
             {/* Mobile overlay: backdrop + fixed panel + floating collapse handle. */}
             {isMobile && Boolean(currentProject) && (
-              <ProjectPanelMobileOverlay
-                projectId={currentProject as string}
-                collapsed={explorerCollapsed}
-                onCollapse={toggleExplorer}
-                widthPx={explorerMobileWidthPx}
-              />
+              <div style={{ display: subagentOpen ? 'none' : undefined }}>
+                <ProjectPanelMobileOverlay
+                  projectId={currentProject as string}
+                  collapsed={explorerCollapsed}
+                  onCollapse={toggleExplorer}
+                  widthPx={explorerMobileWidthPx}
+                />
+              </div>
             )}
           </ArcoLayout>
         </div>

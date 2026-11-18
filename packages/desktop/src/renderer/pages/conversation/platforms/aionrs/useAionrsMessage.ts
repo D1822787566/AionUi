@@ -207,6 +207,9 @@ export const useAionrsMessage = (
       if (conversation_id !== message.conversation_id) {
         return;
       }
+      // Child observations have their own state/history. They never count as
+      // parent text, revive its spinner, or affect its empty-output handling.
+      if (message.type === 'subagent') return;
 
       if (isErrorTipMessage(message)) {
         setStreamRunning(false);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Regression guard for the narrow-width (mobile) project-conversation preview.
@@ -15,6 +15,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 // non-project conversations already render.
 
 let mockIsMobile = false;
+const mockSubagent = { selected: null as string | null, conversationId: 'conv-1' };
+vi.mock('@/renderer/pages/conversation/components/ChatLayout/SubagentExecution/store', () => ({
+  useSubagents: () => mockSubagent,
+}));
 
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: mockIsMobile }),
@@ -22,7 +26,11 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
 
 vi.mock('@/renderer/pages/conversation/Preview', () => ({
   usePreviewContext: () => ({ isOpen: true }),
-  PreviewPanel: () => <div data-testid='preview-panel'>preview</div>,
+  PreviewPanel: () => (
+    <div data-testid='preview-panel'>
+      <textarea aria-label='unsaved preview' defaultValue='original' />
+    </div>
+  ),
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatLayout/MobileWorkspaceOverlay', () => ({
@@ -81,7 +89,12 @@ import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 
 function renderChatLayout(previewHosted: boolean) {
   return render(
-    <ChatLayout previewHosted={previewHosted} sider={<div>sider</div>} workspaceEnabled={false}>
+    <ChatLayout
+      conversation_id='conv-1'
+      previewHosted={previewHosted}
+      sider={<div>sider</div>}
+      workspaceEnabled={false}
+    >
       <div>chat body</div>
     </ChatLayout>
   );
@@ -90,6 +103,7 @@ function renderChatLayout(previewHosted: boolean) {
 describe('ChatLayout mobile preview host fallback', () => {
   afterEach(() => {
     mockIsMobile = false;
+    mockSubagent.selected = null;
   });
 
   it('renders the preview overlay on mobile even for hoisted (project) conversations', () => {
@@ -110,5 +124,24 @@ describe('ChatLayout mobile preview host fallback', () => {
     mockIsMobile = false;
     renderChatLayout(false);
     expect(screen.getByTestId('preview-panel')).toBeInTheDocument();
+  });
+  it('keeps the existing preview node and unsaved edits while subagent details take its space', () => {
+    const view = renderChatLayout(false);
+    const original = screen.getByTestId('preview-panel');
+    const editor = screen.getByRole('textbox', { name: 'unsaved preview' });
+    fireEvent.change(editor, { target: { value: 'unsaved edit' } });
+    mockSubagent.selected = 'child';
+    const content = () => (
+      <ChatLayout conversation_id='conv-1' previewHosted={false} sider={<div>sider</div>} workspaceEnabled={false}>
+        <div>chat body</div>
+      </ChatLayout>
+    );
+    view.rerender(content());
+    expect(original).not.toBeVisible();
+    mockSubagent.selected = null;
+    view.rerender(content());
+    expect(screen.getByTestId('preview-panel')).toBe(original);
+    expect(editor).toHaveValue('unsaved edit');
+    expect(original).toBeVisible();
   });
 });

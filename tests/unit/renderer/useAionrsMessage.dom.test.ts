@@ -54,6 +54,32 @@ describe('useAionrsMessage turn clock', () => {
     responseStreamHandlerRef.current = undefined;
   });
 
+  it('ignores child observations for parent content, waiting and running state', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+    const { result } = renderHook(() => useAionrsMessage('conv-1'));
+    await waitFor(() => expect(result.current.hasHydratedRunningState).toBe(true));
+    act(() =>
+      responseStreamHandlerRef.current?.({
+        type: 'subagent',
+        conversation_id: 'conv-1',
+        msg_id: 'parent',
+        data: { run: { status: 'completed', result: 'child-only text' }, entries: [] },
+      })
+    );
+    expect(result.current.running).toBe(false);
+    expect(addOrUpdateMessageMock).not.toHaveBeenCalled();
+    act(() => result.current.setWaitingResponse(true));
+    act(() =>
+      responseStreamHandlerRef.current?.({
+        type: 'subagent',
+        conversation_id: 'conv-1',
+        msg_id: 'parent',
+        data: { run: { status: 'failed' }, entries: [] },
+      })
+    );
+    expect(result.current.running).toBe(true);
+  });
+
   it('preserves the turn start timestamp when switching away and back to a running conversation', async () => {
     vi.mocked(getConversationOrNull).mockResolvedValue(null);
 

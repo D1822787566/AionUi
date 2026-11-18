@@ -24,6 +24,7 @@ import { Layout as ArcoLayout } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './chat-layout.css';
+import { useSubagents } from './SubagentExecution/store';
 
 // headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
 const ChatLayout: React.FC<{
@@ -69,6 +70,8 @@ const ChatLayout: React.FC<{
   const layout = useLayoutContext();
   const isDesktop = !layout?.isMobile;
   const isMobile = Boolean(layout?.isMobile);
+  const subagentState = useSubagents();
+  const subagentOpen = Boolean(subagentState.selected && subagentState.conversationId === conversation_id);
 
   // Preview panel state
   const { isOpen: isPreviewOpenRaw, isMaximized } = usePreviewContext();
@@ -90,7 +93,8 @@ const ChatLayout: React.FC<{
   // the right workspace sider stays unchanged. Project conversations hoist the
   // preview to the Layout host (previewHosted) and handle maximizing there —
   // isPreviewOpen already excludes that case here.
-  const previewMaximized = isDesktop && isPreviewOpen && isMaximized;
+  const previewMaximized = isDesktop && isPreviewOpen && isMaximized && !subagentOpen;
+  const previewVisible = isPreviewOpen && !subagentOpen;
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -134,9 +138,9 @@ const ChatLayout: React.FC<{
     containerWidth,
     workspaceWidthPx: workspaceWidthPxPref,
     chatSplitRatio: 60, // placeholder; only dynamicChatMinRatio/dynamicChatMaxRatio are used here
-    workspaceEnabled,
+    workspaceEnabled: workspaceEnabled && !subagentOpen,
     isDesktop,
-    isPreviewOpen,
+    isPreviewOpen: previewVisible,
     rightSiderCollapsed,
     isMobile,
   });
@@ -157,9 +161,9 @@ const ChatLayout: React.FC<{
     containerWidth,
     workspaceWidthPx: workspaceWidthPxPref,
     chatSplitRatio,
-    workspaceEnabled,
+    workspaceEnabled: workspaceEnabled && !subagentOpen,
     isDesktop,
-    isPreviewOpen,
+    isPreviewOpen: previewVisible,
     rightSiderCollapsed,
     isMobile,
   });
@@ -167,9 +171,9 @@ const ChatLayout: React.FC<{
   // --- Hook E: layout constraints ---
   useLayoutConstraints({
     containerWidth,
-    workspaceEnabled,
+    workspaceEnabled: workspaceEnabled && !subagentOpen,
     isDesktop,
-    isPreviewOpen,
+    isPreviewOpen: previewVisible,
     rightSiderCollapsed,
     setRightSiderCollapsed,
     workspaceWidthPx: workspaceWidthPxPref,
@@ -264,13 +268,13 @@ const ChatLayout: React.FC<{
             <div
               className='flex flex-col relative'
               style={{
-                flexGrow: isPreviewOpen && isDesktop ? 0 : 1,
+                flexGrow: previewVisible && isDesktop ? 0 : 1,
                 flexShrink: 0,
-                flexBasis: isPreviewOpen && isDesktop ? `${chatFlex}%` : 0,
+                flexBasis: previewVisible && isDesktop ? `${chatFlex}%` : 0,
                 // 最大化时（桌面）隐藏聊天区，预览铺满；移动端预览打开即覆盖聊天区。
                 // Hidden when maximized (desktop) so the preview fills; on mobile an
                 // open preview already covers the chat.
-                display: (isPreviewOpen && isMobile) || previewMaximized ? 'none' : 'flex',
+                display: (previewVisible && isMobile) || previewMaximized ? 'none' : 'flex',
                 minWidth: '240px',
               }}
               onClick={() => {
@@ -294,6 +298,7 @@ const ChatLayout: React.FC<{
                   isDesktop ? '' : 'm-[8px] rounded-[15px]'
                 )}
                 style={{
+                  display: subagentOpen ? 'none' : undefined,
                   flexGrow: 1,
                   flexShrink: 1,
                   flexBasis: 0,
@@ -329,6 +334,7 @@ const ChatLayout: React.FC<{
           <div
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
             style={{
+              display: subagentOpen ? 'none' : undefined,
               flexGrow: 0,
               flexShrink: 0,
               flexBasis: rightSiderCollapsed ? '0px' : `${Math.round(workspaceWidthPx)}px`,
@@ -358,16 +364,18 @@ const ChatLayout: React.FC<{
 
         {/* Mobile workspace overlay: backdrop + fixed panel + floating collapse handle */}
         {workspaceEnabled && layout?.isMobile && (
-          <MobileWorkspaceOverlay
-            rightSiderCollapsed={rightSiderCollapsed}
-            setRightSiderCollapsed={setRightSiderCollapsed}
-            workspaceWidthPx={workspaceWidthPx}
-            mobileWorkspaceHandleRight={mobileWorkspaceHandleRight}
-            siderTitle={props.siderTitle}
-            sider={props.sider}
-            workspacePath={workspacePath}
-            isTemporaryWorkspace={isTemporaryWorkspace}
-          />
+          <div style={{ display: subagentOpen ? 'none' : undefined }}>
+            <MobileWorkspaceOverlay
+              rightSiderCollapsed={rightSiderCollapsed}
+              setRightSiderCollapsed={setRightSiderCollapsed}
+              workspaceWidthPx={workspaceWidthPx}
+              mobileWorkspaceHandleRight={mobileWorkspaceHandleRight}
+              siderTitle={props.siderTitle}
+              sider={props.sider}
+              workspacePath={workspacePath}
+              isTemporaryWorkspace={isTemporaryWorkspace}
+            />
+          </div>
         )}
       </div>
     </ArcoLayout>

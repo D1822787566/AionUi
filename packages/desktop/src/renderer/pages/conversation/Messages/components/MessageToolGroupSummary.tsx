@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import ProcessTrace, { type ProcessDetail, type ProcessStep } from './ProcessTrace';
 import { toProcessSteps, type ProcessMessage } from './ProcessTrace/adapter';
 import { processElapsed } from './ProcessTrace/turns';
+import SubagentTaskList from '../../components/ChatLayout/SubagentExecution/TaskList';
 
 const isAcpImage = (message: ProcessMessage): message is IMessageAcpToolCall =>
   message.type === 'acp_tool_call' && Boolean(normalizeToolMessages([message])[0]?.imagePath);
@@ -88,6 +89,12 @@ const MessageToolGroupSummary: React.FC<SummaryProps> = ({
             : toProcessSteps([entry], t('conversation.processTrace.thinking'))
         )
         .map((step, index, all) => {
+          if (step.label.toLowerCase() === 'spawn' && step.conversationId && step.sourceKey) {
+            step.pinned = true;
+            step.subtasks = (
+              <SubagentTaskList conversationId={step.conversationId} parentCallId={step.sourceKey} input={step.input} />
+            );
+          }
           if (step.kind === 'think' && (active === false || index < all.length - 1)) step.status = 'completed';
           if (active === false && step.kind !== 'think' && (step.status === 'running' || step.status === 'pending'))
             step.status = 'unknown';

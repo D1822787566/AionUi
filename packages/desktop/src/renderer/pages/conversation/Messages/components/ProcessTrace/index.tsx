@@ -116,6 +116,7 @@ function StepRow({
         </div>
       )}
       {step.media}
+      {step.subtasks}
       {step.status === 'waiting' && (
         <div className={styles.confirmation}>
           <span>{t('conversation.processTrace.waitingHint')}</span>

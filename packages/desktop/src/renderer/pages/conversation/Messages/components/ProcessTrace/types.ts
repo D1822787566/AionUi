@@ -15,6 +15,7 @@ export type ProcessStep = ProcessDetail & {
   /** The host supplies its existing confirmation UI; this component never authorizes tools. */
   actions?: ReactNode;
   media?: ReactNode;
+  subtasks?: ReactNode;
   messageId?: string;
   conversationId?: string;
   sourceKey?: string;
